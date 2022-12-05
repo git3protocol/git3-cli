@@ -1,0 +1,26 @@
+{
+  "name": "git-remote-git3",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "debug": "^4.3.4",
+    "git-remote-helper": "^0.4.0"
+  },
+  "scripts": {
+    "build": "yarn run clean && tsc",
+    "install-mac": "yarn pkg && cp ./bin/index-macos /usr/local/bin/git-remote-git3",
+    "pkg": "yarn run build && pkg ./dist/index.js --out-path ./bin",
+    "clean": "rm -rf ./dist ./bin"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.7",
+    "@types/node": "^18.11.10",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.9.3"
+  }
+}
