@@ -59,6 +59,7 @@ GitRemoteHelper({
                 force: boolean;
             }[];
         }) => {
+            
             log("push", p)
             return '\n';
         },
@@ -66,4 +67,5 @@ GitRemoteHelper({
 }).catch((error: any) => {
     console.error("wtf");
     console.error(error);
+    
 });
