@@ -19,7 +19,7 @@ export class ETHStorage implements Storage {
         throw new Error("Method not implemented.");
     }
 
-    async delete(path: string): Promise<void> {
+    async delete(path: string): Promise<Status> {
         throw new Error("Method not implemented.");
     }
     async download(path: string): Promise<[Status, Buffer]> {
