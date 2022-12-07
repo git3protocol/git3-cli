@@ -1,9 +1,14 @@
 
-import GitRemoteHelper from 'git-remote-helper';
-import debug from 'debug';
-const log = debug('git3');
-debug.enable('git3');
+import GitRemoteHelper from './git/git-remote-helper';
+import { ApiBaseParams } from './git/git-remote-helper';
+import Git from './git/git';
+import { log } from './git/log';
+import { ETHStorage } from './storage/ETHStorage';
 
+
+
+
+let git: Git;
 GitRemoteHelper({
     env: process.env,
     stdin: process.stdin,
@@ -12,12 +17,8 @@ GitRemoteHelper({
         /**
          * This will always be invoked when the remote helper is invoked
          */
-        init: async (p: {
-            gitdir: string
-            remoteName: string
-            remoteUrl: string
-        }) => {
-            log('initlog', p);
+        init: async (p: ApiBaseParams) => {
+            git = new Git(p, new ETHStorage(p.remoteUrl))
             return
         },
         /**
@@ -30,10 +31,7 @@ GitRemoteHelper({
             forPush: boolean;
         }) => {
             log('list log', p)
-            // 相同 HEAD
-            return 'dbeac55f31922c90d34f9e57cc709c2c306c7e2e refs/heads/master\n\n';
-            // 不同 HEAD
-            return 'dbeac55f31922c90d34f9e57cc709c2c306c7e2f refs/heads/master\n\n';
+            return await git.do_list(p.forPush)
         },
         /**
          * This should put the requested objects into the `.git`
@@ -59,7 +57,7 @@ GitRemoteHelper({
                 force: boolean;
             }[];
         }) => {
-            
+
             log("push", p)
             return '\n';
         },
@@ -67,5 +65,5 @@ GitRemoteHelper({
 }).catch((error: any) => {
     console.error("wtf");
     console.error(error);
-    
+
 });
