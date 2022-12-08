@@ -31,6 +31,7 @@ GitRemoteHelper({
             forPush: boolean;
         }) => {
             log('list log', p)
+
             return await git.do_list(p.forPush)
         },
         /**
@@ -42,6 +43,7 @@ GitRemoteHelper({
             remoteUrl: string;
             refs: { ref: string; oid: string }[];
         }) => {
+            log("fetch", p)
             return '\n\n';
         },
         /**
@@ -57,9 +59,9 @@ GitRemoteHelper({
                 force: boolean;
             }[];
         }) => {
-
             log("push", p)
-            return '\n';
+            return await git.do_push(p.refs)
+            return '\n\n';
         },
     },
 }).catch((error: any) => {

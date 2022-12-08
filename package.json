@@ -6,10 +6,19 @@
   "files": [
     "dist/"
   ],
+  "bin": "dist/index.js",
+  "pkg": {
+    "targets": [
+      "node18-macos-arm64",
+      "node18-macos-x64",
+      "node18-linux-x64",
+      "node18-win-x64"
+    ],
+    "outputPath": "bin"
+  },
   "license": "MIT",
   "dependencies": {
     "debug": "^4.3.4",
-    "level": "^8.0.0",
     "rxjs": "^6.6.3",
     "rxjs-async-map": "^0.2.0",
     "rxjs-stream": "^3.2.1",
@@ -17,8 +26,9 @@
   },
   "scripts": {
     "build": "yarn run clean && tsc",
-    "install-mac": "yarn pkg && cp ./bin/index-macos /usr/local/bin/git-remote-git3",
-    "pkg": "yarn run build && pkg ./dist/index.js --out-path ./bin",
+    "install-mac": "yarn pkg && cp ./bin/git-remote-git3-macos-x64 /usr/local/bin/git-remote-git3",
+    "install-mac-arm": "yarn pkg && cp ./bin/git-remote-git3-macos-arm64 /usr/local/bin/git-remote-git3",
+    "pkg": "yarn run build && pkg .",
     "clean": "rm -rf ./dist ./bin"
   },
   "devDependencies": {

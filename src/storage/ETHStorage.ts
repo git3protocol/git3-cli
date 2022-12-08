@@ -1,6 +1,10 @@
-import { Level } from "level";
+import fs from 'fs'
 import { Ref, Status, Storage } from "./storage";
-const db = new Level('mock')
+import { superpathjoin as join } from 'superpathjoin';
+const mockPath = process.env.HOME + "/.git3/mock"
+fs.mkdirSync(mockPath, { recursive: true })
+const log = console.error
+log("mock path", mockPath)
 
 export class ETHStorage implements Storage {
     repoURI: string;
@@ -9,11 +13,21 @@ export class ETHStorage implements Storage {
         this.repoURI = repoURI
     }
 
-    listRefs(): Promise<Ref[]> {
-        throw new Error("Method not implemented.");
+    async listRefs(): Promise<Ref[]> {
+        try {
+            let refsJson = fs.readFileSync(join(mockPath, "refs.json"))
+            return JSON.parse(refsJson.toString())
+        }
+
+        catch (e) {
+            log("no refs found")
+            return []
+        }
+
     }
-    addRefs(refs: Ref[]): Promise<Status> {
-        throw new Error("Method not implemented.");
+    async addRefs(refs: Ref[]): Promise<Status> {
+        fs.writeFileSync(join(mockPath, "refs.json"), JSON.stringify(refs))
+        return Status.SUCCEED
     }
     delRefs(refs: Ref[]): Promise<Status> {
         throw new Error("Method not implemented.");
@@ -23,15 +37,13 @@ export class ETHStorage implements Storage {
         throw new Error("Method not implemented.");
     }
     async download(path: string): Promise<[Status, Buffer]> {
-        const prefix = "file:"
-        let value = await db.get(prefix + path)
-        return [Status.SUCCEED, Buffer.from(value)]
+        let buffer = fs.readFileSync(join(mockPath, path))
+        return [Status.SUCCEED, buffer]
     }
 
 
     async upload(path: string, file: Buffer): Promise<Status> {
-        const prefix = "file:"
-        await db.put(prefix + path, file.toString())
+        fs.writeFileSync(join(mockPath, path), file)
         return Status.SUCCEED
     }
 }
