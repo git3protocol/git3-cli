@@ -32,7 +32,9 @@ GitRemoteHelper({
         }) => {
             log('list log', p)
 
-            return await git.do_list(p.forPush)
+            let out = await git.do_list(p.forPush)
+            log("list out:\n", out)
+            return out
         },
         /**
          * This should put the requested objects into the `.git`
@@ -60,8 +62,9 @@ GitRemoteHelper({
             }[];
         }) => {
             log("push", p)
-            return await git.do_push(p.refs)
-            return '\n\n';
+            let out = await git.do_push(p.refs)
+            log("push out:\n", out)
+            return out
         },
     },
 }).catch((error: any) => {

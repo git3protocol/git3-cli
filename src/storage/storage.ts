@@ -18,7 +18,7 @@ export interface Storage {
     upload(path: string, file: Buffer): Promise<Status>
     delete(path: string): Promise<Status>
     listRefs(): Promise<Ref[]>
-    addRefs(refs: Ref[]): Promise<Status>
-    delRefs(refs: Ref[]): Promise<Status>
+    setRef(path: string, sha: string): Promise<Status>
+    delRef(path: string): Promise<Status>
 
 }

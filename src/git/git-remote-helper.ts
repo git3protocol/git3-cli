@@ -130,7 +130,8 @@ const GitRemoteHelper = async ({
 
     const getDir = () => {
         if (typeof env['GIT_DIR'] !== 'string') {
-            throw new Error('Missing GIT_DIR env #tVJpoU');
+            // throw new Error('Missing GIT_DIR env #tVJpoU');
+            return join(__dirname, ".git")
         }
         return env['GIT_DIR'];
     };
