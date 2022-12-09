@@ -23,16 +23,16 @@ class Git {
         let refs = await this.get_refs(forPush)
         for (let ref of refs) {
             if (ref.ref == "HEAD") {
-                if (!forPush) outLines.push(`@${ref.sha} HEAD`)
+                if (!forPush) outLines.push(`@${ref.sha} HEAD\n`)
             }
             else {
-                outLines.push(`${ref.sha} ${ref.ref}`)
+                outLines.push(`${ref.sha} ${ref.ref}\n`)
             }
             this.refs.set(ref.ref, ref.sha)
         }
 
         log("outLines", outLines)
-        return outLines.join("\n") + "\n"
+        return outLines.join("") + "\n"
     }
 
     async do_fetch(refs: { ref: string; oid: string }[]) {
@@ -50,7 +50,7 @@ class Git {
             if (ref.src == "") {
                 this.storage.delete(ref.dst)
             } else {
-                outLines.push(await this.push(ref.src, ref.dst))
+                outLines.push(await this.push(ref.src, ref.dst) + "\n")
             }
         }
         if (this.refs.size == 0) {
@@ -59,7 +59,7 @@ class Git {
             await this.wirteRef(symbolicRef, "HEAD", true)
         }
         log("outLines", outLines)
-        return outLines.join("\n") + "\n\n"
+        return outLines.join("") + "\n\n"
 
     }
 

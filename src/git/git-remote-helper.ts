@@ -177,7 +177,10 @@ const GitRemoteHelper = async ({
         map(line => line.trimEnd()),
         scan(
             (acc, line) => {
-                log('Scanning #NH7FyX', JSON.stringify({ acc, line }));
+                // console.log('')
+                // console.error('====')
+                // console.error(line)
+                // log('Scanning #NH7FyX', JSON.stringify({ acc, line }));
                 // If we emitted the last value, then we ignore all of the current lines
                 // and start fresh on the next "batch"
                 const linesWaitingToBeEmitted = acc.emit ? [] : acc.lines;
