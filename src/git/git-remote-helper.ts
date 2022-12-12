@@ -1,8 +1,8 @@
-import debug from 'debug';
-import { asyncMap } from 'rxjs-async-map';
-import { rxToStream, streamToStringRx } from 'rxjs-stream';
-import { filter, map, mergeMap, scan, tap } from 'rxjs/operators';
-import { superpathjoin as join } from 'superpathjoin';
+import debug from 'debug'
+import { asyncMap } from 'rxjs-async-map'
+import { rxToStream, streamToStringRx } from 'rxjs-stream'
+import { filter, map, mergeMap, scan, tap } from 'rxjs/operators'
+import { superpathjoin as join } from 'superpathjoin'
 
 // TODO Add tests
 
@@ -17,73 +17,73 @@ const ONE_LINE_COMMANDS = [
     GitCommands.capabilities,
     GitCommands.option,
     GitCommands.list,
-];
+]
 
 const logError = (...args: any) => {
-    console.error(...args);
-};
-const log = debug('git-remote-helper');
-const logIo = log.extend('io');
-const logInput = logIo.extend('input');
-const logOutput = logIo.extend('output');
+    console.error(...args)
+}
+const log = debug('git-remote-helper')
+const logIo = log.extend('io')
+const logInput = logIo.extend('input')
+const logOutput = logIo.extend('output')
 
-export type PushRef = { src: string; dst: string; force: boolean };
-export type FetchRef = { ref: string; oid: string };
+export type PushRef = { src: string, dst: string, force: boolean }
+export type FetchRef = { ref: string, oid: string }
 
 type CommandCapabilities = {
-    command: GitCommands.capabilities;
-};
+    command: GitCommands.capabilities
+}
 type CommandOption = {
-    command: GitCommands.option;
-    key: string;
-    value: string;
-};
+    command: GitCommands.option
+    key: string
+    value: string
+}
 type CommandList = {
-    command: GitCommands.list;
-    forPush: boolean;
-};
+    command: GitCommands.list
+    forPush: boolean
+}
 type CommandPush = {
-    command: GitCommands.push;
-    refs: PushRef[];
-};
+    command: GitCommands.push
+    refs: PushRef[]
+}
 type CommandFetch = {
-    command: GitCommands.fetch;
-    refs: FetchRef[];
-};
+    command: GitCommands.fetch
+    refs: FetchRef[]
+}
 export type Command =
     | CommandCapabilities
     | CommandOption
     | CommandList
     | CommandPush
-    | CommandFetch;
+    | CommandFetch
 
 /**
  * These are parameters which are passed to every api callback
  */
 export type ApiBaseParams = {
-    gitdir: string;
+    gitdir: string
     /**
      * The remote name, or the remote URL if a name is not provided. Supplied by
      * the native git client.
      */
-    remoteName: string;
+    remoteName: string
     /**
      * The remote URL passed by the native git client.
      *
      * NOTE: It will not contain the leading `HELPER::`, only the part after that.
      */
-    remoteUrl: string;
-};
+    remoteUrl: string
+}
 
 
 type HandlePush = (
     params: ApiBaseParams & { refs: PushRef[] }
-) => Promise<string>;
+) => Promise<string>
 type HandleFetch = (
     params: ApiBaseParams & {
-        refs: FetchRef[];
+        refs: FetchRef[]
     }
-) => Promise<string>;
+) => Promise<string>
 
 type ApiBase = {
     /**
@@ -92,28 +92,28 @@ type ApiBase = {
      * awaited, so you can safely do setup steps here and trust they will be
      * finished before any of the other API methods are invoked.
      */
-    init?: (params: ApiBaseParams) => Promise<void>;
+    init?: (params: ApiBaseParams) => Promise<void>
     list: (
         params: ApiBaseParams & {
-            forPush: boolean;
+            forPush: boolean
         }
-    ) => Promise<string>;
-    handlePush?: HandlePush;
-    handleFetch?: HandleFetch;
-};
+    ) => Promise<string>
+    handlePush?: HandlePush
+    handleFetch?: HandleFetch
+}
 type ApiPush = ApiBase & {
-    handlePush: HandlePush;
-    handleFetch?: undefined;
-};
+    handlePush: HandlePush
+    handleFetch?: undefined
+}
 type ApiFetch = ApiBase & {
-    handlePush?: undefined;
-    handleFetch: HandleFetch;
-};
+    handlePush?: undefined
+    handleFetch: HandleFetch
+}
 type ApiBoth = ApiBase & {
-    handlePush: HandlePush;
-    handleFetch: HandleFetch;
-};
-type Api = ApiPush | ApiFetch | ApiBoth;
+    handlePush: HandlePush
+    handleFetch: HandleFetch
+}
+type Api = ApiPush | ApiFetch | ApiBoth
 
 const GitRemoteHelper = async ({
     env,
@@ -121,53 +121,53 @@ const GitRemoteHelper = async ({
     stdin,
     stdout,
 }: {
-    env: typeof process.env;
-    stdin: typeof process.stdin;
-    stdout: typeof process.stdout;
-    api: Api;
+    env: typeof process.env
+    stdin: typeof process.stdin
+    stdout: typeof process.stdout
+    api: Api
 }) => {
-    const inputStream = streamToStringRx(stdin);
+    const inputStream = streamToStringRx(stdin)
 
     const getDir = () => {
         if (typeof env['GIT_DIR'] !== 'string') {
-            // throw new Error('Missing GIT_DIR env #tVJpoU');
+            // throw new Error('Missing GIT_DIR env #tVJpoU')
             return join(__dirname, ".git")
         }
-        return env['GIT_DIR'];
-    };
-    const gitdir = join(process.cwd(), getDir());
+        return env['GIT_DIR']
+    }
+    const gitdir = join(process.cwd(), getDir())
 
-    const [, , remoteName, remoteUrl] = process.argv;
+    const [, , remoteName, remoteUrl] = process.argv
 
     const capabilitiesResponse =
         [GitCommands.option, GitCommands.push, GitCommands.fetch]
             .filter(option => {
                 if (option === GitCommands.option) {
-                    return true;
+                    return true
                 } else if (option === GitCommands.push) {
-                    return typeof api.handlePush === 'function';
+                    return typeof api.handlePush === 'function'
                 } else if (option === GitCommands.fetch) {
-                    return typeof api.handleFetch === 'function';
+                    return typeof api.handleFetch === 'function'
                 } else {
-                    throw new Error('Unknown option #GDhBnb');
+                    throw new Error('Unknown option #GDhBnb')
                 }
             })
-            .join('\n') + '\n\n';
+            .join('\n') + '\n\n'
 
     log('Startup #p6i3kB', {
         gitdir,
         remoteName,
         remoteUrl,
         capabilitiesResponse,
-    });
+    })
 
     if (typeof api.init === 'function') {
-        await api.init({ gitdir, remoteName, remoteUrl });
+        await api.init({ gitdir, remoteName, remoteUrl })
     }
 
     const commands = inputStream.pipe(
         tap(line => {
-            logInput('Got raw input line #gARMUQ', JSON.stringify(line));
+            logInput('Got raw input line #gARMUQ', JSON.stringify(line))
         }),
         // The `line` can actually contain multiple lines, so we split them out into
         // multiple pieces and recombine them again
@@ -180,10 +180,10 @@ const GitRemoteHelper = async ({
                 // console.log('')
                 // console.error('====')
                 // console.error(line)
-                // log('Scanning #NH7FyX', JSON.stringify({ acc, line }));
+                // log('Scanning #NH7FyX', JSON.stringify({ acc, line }))
                 // If we emitted the last value, then we ignore all of the current lines
                 // and start fresh on the next "batch"
-                const linesWaitingToBeEmitted = acc.emit ? [] : acc.lines;
+                const linesWaitingToBeEmitted = acc.emit ? [] : acc.lines
 
                 // When we hit an empty line, it's always the completion of a command
                 // block, so we always want to emit the lines we've been collecting.
@@ -191,10 +191,10 @@ const GitRemoteHelper = async ({
                 // here, it gets dropped here.
                 if (line === '') {
                     if (linesWaitingToBeEmitted.length === 0) {
-                        return { emit: false, lines: [] };
+                        return { emit: false, lines: [] }
                     }
 
-                    return { emit: true, lines: linesWaitingToBeEmitted };
+                    return { emit: true, lines: linesWaitingToBeEmitted }
                 }
 
                 // Some commands emit one line at a time and so do not get buffered
@@ -204,28 +204,28 @@ const GitRemoteHelper = async ({
                         logError(
                             'Got one line command with lines waiting #ompfQK',
                             JSON.stringify({ linesWaitingToBeEmitted })
-                        );
-                        throw new Error('Got one line command with lines waiting #evVyYv');
+                        )
+                        throw new Error('Got one line command with lines waiting #evVyYv')
                     }
 
-                    return { emit: true, lines: [line] };
+                    return { emit: true, lines: [line] }
                 }
 
                 // Otherwise, this line is part of a multi line command, so stick it
                 // into the "buffer" and do not emit
-                return { emit: false, lines: linesWaitingToBeEmitted.concat(line) };
+                return { emit: false, lines: linesWaitingToBeEmitted.concat(line) }
             },
             { emit: false, lines: [] as string[] }
         ),
         tap(acc => {
-            log('Scan output #SAAmZ4', acc);
+            log('Scan output #SAAmZ4', acc)
         }),
         filter(acc => acc.emit),
         map(emitted => emitted.lines),
         tap(lines => {
-            log('Buffer emptied #TRqQFc', JSON.stringify(lines));
+            log('Buffer emptied #TRqQFc', JSON.stringify(lines))
         })
-    );
+    )
 
     // NOTE: Splitting this into 2 pipelines so typescript is happy that it
     // produces a string
@@ -234,46 +234,46 @@ const GitRemoteHelper = async ({
         // Build objects from the sequential lines
         map(
             (lines): Command => {
-                log('Mapping buffered line #pDqtRP', lines);
+                log('Mapping buffered line #pDqtRP', lines)
 
-                const command = lines[0];
+                const command = lines[0]
 
                 if (command.startsWith('capabilities')) {
-                    return { command: GitCommands.capabilities };
+                    return { command: GitCommands.capabilities }
                 } else if (command.startsWith(GitCommands.list)) {
                     return {
                         command: GitCommands.list,
                         forPush: command.startsWith('list for-push'),
-                    };
+                    }
                 } else if (command.startsWith(GitCommands.option)) {
-                    const [, key, value] = command.split(' ');
-                    return { command: GitCommands.option, key, value };
+                    const [, key, value] = command.split(' ')
+                    return { command: GitCommands.option, key, value }
                 } else if (command.startsWith(GitCommands.fetch)) {
                     // Lines for fetch commands look like:
                     // fetch sha1 branchName
                     const refs = lines.map(line => {
-                        const [, oid, ref] = line.split(' ');
-                        return { oid, ref };
-                    });
+                        const [, oid, ref] = line.split(' ')
+                        return { oid, ref }
+                    })
 
-                    return { command: GitCommands.fetch, refs };
+                    return { command: GitCommands.fetch, refs }
                 } else if (command.startsWith(GitCommands.push)) {
                     // Lines for push commands look like this (the + means force push):
                     // push refs/heads/master:refs/heads/master
                     // push +refs/heads/master:refs/heads/master
                     const refs = lines.map(line => {
                         // Strip the leading `push ` from the line
-                        const refsAndForce = line.slice(5);
-                        const force = refsAndForce[0] === '+';
-                        const refs = force ? refsAndForce.slice(1) : refsAndForce;
-                        const [src, dst] = refs.split(':');
-                        return { src, dst, force };
-                    });
+                        const refsAndForce = line.slice(5)
+                        const force = refsAndForce[0] === '+'
+                        const refs = force ? refsAndForce.slice(1) : refsAndForce
+                        const [src, dst] = refs.split(':')
+                        return { src, dst, force }
+                    })
 
-                    return { command: GitCommands.push, refs };
+                    return { command: GitCommands.push, refs }
                 }
 
-                throw new Error('Unknown command #Py9QTP');
+                throw new Error('Unknown command #Py9QTP')
             }
         ),
         asyncMap(async command => {
@@ -281,63 +281,63 @@ const GitRemoteHelper = async ({
                 log(
                     'Returning capabilities #MJMFfj',
                     JSON.stringify({ command, capabilitiesResponse })
-                );
-                return capabilitiesResponse;
+                )
+                return capabilitiesResponse
             } else if (command.command === GitCommands.option) {
                 // TODO Figure out how to handle options properly
                 log(
                     'Reporting option unsupported #WdUrzx',
                     JSON.stringify({ command })
-                );
-                return 'unsupported\n';
+                )
+                return 'unsupported\n'
             } else if (command.command === GitCommands.list) {
-                const { forPush } = command;
+                const { forPush } = command
                 try {
-                    return api.list({ gitdir, remoteName, remoteUrl, forPush });
+                    return api.list({ gitdir, remoteName, remoteUrl, forPush })
                 } catch (error) {
-                    console.error('api.list threw #93ROre');
-                    // console.error(error);
-                    throw error;
+                    console.error('api.list threw #93ROre')
+                    // console.error(error)
+                    throw error
                 }
             } else if (command.command === GitCommands.push) {
-                log('Calling api.handlePush() #qpi4Ah');
-                const { refs } = command;
+                log('Calling api.handlePush() #qpi4Ah')
+                const { refs } = command
                 if (typeof api.handlePush === 'undefined') {
-                    throw new Error('api.handlePush undefined #9eNmmz');
+                    throw new Error('api.handlePush undefined #9eNmmz')
                 }
                 try {
                     // NOTE: Without the await here, the promise is returned immediately,
                     // and the catch block never fires.
-                    return await api.handlePush({ refs, gitdir, remoteName, remoteUrl });
+                    return await api.handlePush({ refs, gitdir, remoteName, remoteUrl })
                 } catch (error) {
-                    console.error('api.handlePush threw #9Ei4c4');
-                    // console.error(error);
-                    throw error;
+                    console.error('api.handlePush threw #9Ei4c4')
+                    // console.error(error)
+                    throw error
                 }
             } else if (command.command === GitCommands.fetch) {
-                const { refs } = command;
+                const { refs } = command
                 if (typeof api.handleFetch === 'undefined') {
-                    throw new Error('api.handleFetch undefined #9eNmmz');
+                    throw new Error('api.handleFetch undefined #9eNmmz')
                 }
                 try {
                     // NOTE: Without the await here, the promise is returned immediately,
                     // and the catch block never fires.
-                    return await api.handleFetch({ refs, gitdir, remoteName, remoteUrl });
+                    return await api.handleFetch({ refs, gitdir, remoteName, remoteUrl })
                 } catch (error) {
-                    console.error('api.handleFetch threw #5jxsQQ');
-                    // console.error(error);
-                    throw error;
+                    console.error('api.handleFetch threw #5jxsQQ')
+                    // console.error(error)
+                    throw error
                 }
             }
 
-            throw new Error('Unrecognised command #e6nTnS');
+            throw new Error('Unrecognised command #e6nTnS')
         }, 1),
         tap(x => {
-            logOutput('Sending response #31EyIs', JSON.stringify(x));
+            logOutput('Sending response #31EyIs', JSON.stringify(x))
         })
-    );
+    )
 
-    rxToStream(output).pipe(stdout);
-};
+    rxToStream(output).pipe(stdout)
+}
 
-export default GitRemoteHelper;
+export default GitRemoteHelper

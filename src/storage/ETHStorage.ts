@@ -1,14 +1,14 @@
 import { promises as fs } from 'fs'
 import pathUtil from 'path'
-import { Ref, Status, Storage } from "./storage";
-import { superpathjoin as join } from 'superpathjoin';
+import { Ref, Status, Storage } from "./storage"
+import { superpathjoin as join } from 'superpathjoin'
 const mockPath = process.env.HOME + "/.git3/mock"
 fs.mkdir(mockPath, { recursive: true })
 const log = console.error
 log("mock path", mockPath)
 
 export class ETHStorage implements Storage {
-    repoURI: string;
+    repoURI: string
 
     constructor(repoURI: string) {
         this.repoURI = repoURI
@@ -57,7 +57,7 @@ export class ETHStorage implements Storage {
     }
 
     async remove(path: string): Promise<Status> {
-        throw new Error("Method not implemented.");
+        throw new Error("Method not implemented.")
     }
     async download(path: string): Promise<[Status, Buffer]> {
         let buffer = await fs.readFile(join(mockPath, path))
