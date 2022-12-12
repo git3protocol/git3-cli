@@ -3,7 +3,7 @@ import GitRemoteHelper from './git/git-remote-helper'
 import { ApiBaseParams } from './git/git-remote-helper'
 import Git from './git/git'
 import { log } from './git/log'
-import { ETHStorage } from './storage/ETHStorage'
+import { MockStorage } from './storage/MockStorage'
 
 
 
@@ -18,7 +18,7 @@ GitRemoteHelper({
          * This will always be invoked when the remote helper is invoked
          */
         init: async (p: ApiBaseParams) => {
-            git = new Git(p, new ETHStorage(p.remoteUrl))
+            git = new Git(p, new MockStorage(p.remoteUrl))
             return
         },
         /**
