@@ -1,8 +1,8 @@
-import { mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync, createWriteStream } from 'fs'
+import { mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync, existsSync } from 'fs'
 import { ethers } from 'ethers'
-import { Command, Option } from 'commander'
-import inquirer from 'inquirer'
+import { Command } from 'commander'
 import bip39 from 'bip39'
+import inquirer from 'inquirer'
 import parse from 'parse-git-config'
 import { importActions, generateActions } from './actions.js'
 const program = new Command()
@@ -43,20 +43,36 @@ program.command('generate')
 program.command('list', { isDefault: true })
   .alias('ls')
   .description('list all wallets in user folder ~/.git3/keys')
-  .action(() => {
+  .option('-r, --raw', 'output raw wallet data with pravate key / mnemonic')
+  .action(params => {
+
     const keyPath = process.env.HOME + "/.git3/keys"
     mkdirSync(keyPath, { recursive: true })
     const wallets = readdirSync(keyPath)
 
     if (wallets.length === 0) {
-      console.log('No wallet found, you can generate one with `git3 generate`')
+      console.log('No wallet found, you can generate one use <git3 new>')
     }
 
     wallets.forEach(file => {
       const content = readFileSync(`${keyPath}/${file}`).toString()
+
+
+      if (params.raw) {
+        console.log(`[${file}]`)
+        console.log(`  ${content.split('\n')[0]} - ${content.split('\n')[1]}`)
+        console.log('\t')
+        return
+      }
+
       console.log(`[${file}]`)
-      console.log(`  ${content.split('\n')[0]} - ${content.split('\n')[1]}`)
-      console.log('\n')
+      const [walletType, key] = content.split('\n')
+      const etherWallet = walletType === 'privateKey'
+        ? new ethers.Wallet(key)
+        : ethers.Wallet.fromMnemonic(key)
+      const address = etherWallet.address
+      console.log(`address: ${address}`)
+      console.log('\t')
     })
   })
 
@@ -126,9 +142,9 @@ program.command('info')
 
     etherWallet.getBalance()
       .then(balance => {
-        console.log(`[wallet] ${wallet}`)
-        console.log(` address: ${address}`)
-        console.log(` balance: ${ethers.utils.formatUnits(balance)} eth`)
+        console.log(`wallet:  ${wallet}`)
+        console.log(`address: ${address}`)
+        console.log(`balance: ${ethers.utils.formatUnits(balance)} eth`)
       })
       .catch(err => {
         console.error(err)
@@ -145,6 +161,14 @@ program.command('set-wallet')
     const currentConfig = parse.sync()
 
     const existingRemote = currentConfig[`remote "${git3}"`]
+    const keyPath = process.env.HOME + "/.git3/keys"
+    mkdirSync(keyPath, { recursive: true })
+    
+    if(!existsSync(`${keyPath}/${wallet}`)) {
+      console.error(`wallet ${wallet} not found, use <git3 new> to generate one`)
+      return
+    }
+
     if (existingRemote) {
       const newConfig = {
         ...currentConfig,
