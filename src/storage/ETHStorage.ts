@@ -27,7 +27,6 @@ export class ETHStorage implements Storage {
         }
 
         catch (e) {
-            log("no refs found")
             return []
         }
 
@@ -53,6 +52,7 @@ export class ETHStorage implements Storage {
         let refsJson = await fs.readFile(stPath)
         let dict = JSON.parse(refsJson.toString())
         delete dict[path]
+        await fs.writeFile(stPath, JSON.stringify(dict))
         return Status.SUCCEED
     }
 

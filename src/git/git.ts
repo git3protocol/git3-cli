@@ -1,15 +1,16 @@
-import { log } from './log';
-import { superpathjoin as join } from 'superpathjoin';
-import { ApiBaseParams } from './git-remote-helper';
-import { Ref, Status, Storage } from '../storage/storage';
-import { GitUtils } from './git-utils';
+import { log } from './log'
+import { superpathjoin as join } from 'superpathjoin'
+import { ApiBaseParams } from './git-remote-helper'
+import { Ref, Status, Storage } from '../storage/storage'
+import { GitUtils } from './git-utils'
 class Git {
     gitdir: string
     remoteName: string
     remoteUrl: string
     storage: Storage
-    refs: Map<string, string> = new Map();
-    pushed: Map<string, string> = new Map();
+    refs: Map<string, string> = new Map()
+    pushed: Map<string, string> = new Map()
+    head: string | null
 
     constructor(info: ApiBaseParams, storage: Storage) {
         this.gitdir = info.gitdir
@@ -18,6 +19,7 @@ class Git {
         this.storage = storage
         this.refs = new Map()
         this.pushed = new Map()
+        this.head = null
     }
 
     async do_list(forPush: boolean) {
@@ -26,58 +28,29 @@ class Git {
         for (let ref of refs) {
             if (ref.ref == "HEAD") {
                 if (!forPush) outLines.push(`@${ref.sha} HEAD\n`)
+                this.head = ref.sha
             }
             else {
                 outLines.push(`${ref.sha} ${ref.ref}\n`)
+                this.refs.set(ref.ref, ref.sha)
             }
-            this.refs.set(ref.ref, ref.sha)
+
         }
 
-        log("outLines", outLines)
         return outLines.join("") + "\n"
     }
 
-    async do_fetch(refs: { ref: string; oid: string }[]) {
+    async do_fetch(refs: { ref: string, oid: string }[]) {
         for (let ref of refs) {
             await this.fetch(ref.oid)
         }
-    }
-
-    async fetch(oid: string) {
-        let downloaded = new Set<string>()
-        let pending = new Set<string>()
-        let queue = [oid]
-
-        while (queue.length > 0 || pending.size > 0) {
-            if (queue.length > 0) {
-                let sha = queue.pop() || ""
-                if (downloaded.has(sha) || pending.has(sha)) continue
-                if (GitUtils.objectExists(sha)) {
-                    if (sha == GitUtils.EMPTY_TREE_HASH) {
-                        GitUtils.writeObject("tree", Buffer.from(""))
-                    }
-                    if (!GitUtils.historyExists(sha)) {
-                        log("missing part of history from", sha)
-                        queue.push(...GitUtils.referencedObjects(sha))
-                    }
-                    else {
-                        log("already downloaded", sha)
-                    }
-                }
-                else {
-                    pending.add(sha)
-                }
-            }
-            else {
-
-            }
-        }
+        return "\n\n"
     }
 
     async do_push(refs: {
-        src: string;
-        dst: string;
-        force: boolean;
+        src: string
+        dst: string
+        force: boolean
     }[]): Promise<string> {
         let outLines: string[] = []
         // let remoteHead = null
@@ -100,9 +73,53 @@ class Git {
             let symbolicRef = GitUtils.symbolicRef("HEAD")
             await this.wirteRef(symbolicRef, "HEAD", true)
         }
-        log("outLines", outLines)
         return outLines.join("") + "\n\n"
 
+    }
+
+    async fetch(oid: string) {
+        let fetching: Promise<void>[] = []
+        if (GitUtils.objectExists(oid)) {
+            if (oid == GitUtils.EMPTY_TREE_HASH) {
+                GitUtils.writeObject("tree", Buffer.from(""))
+            }
+            if (!GitUtils.historyExists(oid)) {
+                log("missing part of history from", oid)
+                for (let sha of GitUtils.referencedObjects(oid)) {
+                    fetching.push(this.fetch(sha))
+                }
+            }
+            else {
+                log("already downloaded", oid)
+            }
+        }
+        else {
+            let error = await this.download(oid)
+            if (!error) {
+                for (let sha of GitUtils.referencedObjects(oid)) {
+                    fetching.push(this.fetch(sha))
+                }
+            } else {
+                fetching.push(this.fetch(oid))
+            }
+
+        }
+        await Promise.all(fetching)
+    }
+
+    async download(sha: string): Promise<Error | null> {
+        log("fetching...", sha)
+        let [status, data] = await this.storage.download(this.objectPath(sha))
+        if (status == Status.SUCCEED) {
+            let computedSha = GitUtils.decodeObject(data)
+            if (computedSha != sha) {
+                return new Error(`sha mismatch ${computedSha} != ${sha}`)
+            }
+        }
+        else {
+            return new Error(`download failed ${sha}`)
+        }
+        return null
     }
 
     async push(src: string, dst: string) {
@@ -114,7 +131,6 @@ class Git {
         let present = Array.from(this.refs.values())
         present.push(...Array.from(this.pushed.values()))
         let objects = GitUtils.listObjects(src, present)
-        log("listObjects", objects)
         for (let obj of objects) {
             await this.putObject(obj)
         }
@@ -139,7 +155,6 @@ class Git {
                 return "non-fast forward"
             }
         }
-        log("setRef", dst, newSha)
         let status = await this.storage.setRef(dst, newSha)
         if (status == Status.SUCCEED) {
             return null
@@ -159,23 +174,9 @@ class Git {
     }
 
     objectPath(name: string): string {
-        const prefix = name.slice(0, 2);
-        const suffix = name.slice(2);
-        return join("objects", prefix, suffix);
-    }
-
-    async read_symbolic_ref(path: string) {
-        path = join(this.gitdir, path)
-        log("fetching symbolic ref: ", path)
-
-        try {
-            const [_, data] = await this.storage.download(path)
-            let ref = data.toString()
-            ref = ref.slice("ref: ".length).trim();
-            return ref;
-        } catch (e) {
-            return null;
-        }
+        const prefix = name.slice(0, 2)
+        const suffix = name.slice(2)
+        return join("objects", prefix, suffix)
     }
 
     async get_refs(forPush: boolean): Promise<Ref[]> {

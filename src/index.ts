@@ -1,14 +1,14 @@
 
-import GitRemoteHelper from './git/git-remote-helper';
-import { ApiBaseParams } from './git/git-remote-helper';
-import Git from './git/git';
-import { log } from './git/log';
-import { ETHStorage } from './storage/ETHStorage';
+import GitRemoteHelper from './git/git-remote-helper'
+import { ApiBaseParams } from './git/git-remote-helper'
+import Git from './git/git'
+import { log } from './git/log'
+import { ETHStorage } from './storage/ETHStorage'
 
 
 
 
-let git: Git;
+let git: Git
 GitRemoteHelper({
     env: process.env,
     stdin: process.stdin,
@@ -25,10 +25,10 @@ GitRemoteHelper({
          * This needs to return a list of git refs.
          */
         list: async (p: {
-            gitdir: string;
-            remoteName: string;
-            remoteUrl: string;
-            forPush: boolean;
+            gitdir: string
+            remoteName: string
+            remoteUrl: string
+            forPush: boolean
         }) => {
             log('list', p)
 
@@ -40,26 +40,28 @@ GitRemoteHelper({
          * This should put the requested objects into the `.git`
          */
         handleFetch: async (p: {
-            gitdir: string;
-            remoteName: string;
-            remoteUrl: string;
-            refs: { ref: string; oid: string }[];
+            gitdir: string
+            remoteName: string
+            remoteUrl: string
+            refs: { ref: string, oid: string }[]
         }) => {
             log("fetch", p)
-            return '\n\n';
+            let out = await git.do_fetch(p.refs)
+            log("fetch out:\n", out)
+            return out
         },
         /**
          * This should copy objects from `.git`
          */
         handlePush: async (p: {
-            gitdir: string;
-            remoteName: string;
-            remoteUrl: string;
+            gitdir: string
+            remoteName: string
+            remoteUrl: string
             refs: {
-                src: string;
-                dst: string;
-                force: boolean;
-            }[];
+                src: string
+                dst: string
+                force: boolean
+            }[]
         }) => {
             log("push", p)
             let out = await git.do_push(p.refs)
@@ -68,7 +70,7 @@ GitRemoteHelper({
         },
     },
 }).catch((error: any) => {
-    console.error("wtf");
-    console.error(error);
+    console.error("wtf")
+    console.error(error)
 
-});
+})

@@ -1,5 +1,6 @@
 import childProcess, { spawnSync } from 'child_process'
-import * as zlib from "zlib";
+import bsplit from 'buffer-split'
+import * as zlib from "zlib"
 
 export class GitUtils {
     static EMPTY_TREE_HASH: string = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
@@ -14,7 +15,7 @@ export class GitUtils {
         try {
             // const { stdout } = exec(`git ${args.join(" ")}`, { encoding: "utf8" })
             const { stdout } = spawnSync("git", args, { encoding: "utf8" })
-            return stdout
+            return stdout.trim()
         }
         catch (e) {
             return ""
@@ -56,9 +57,22 @@ export class GitUtils {
             Buffer.from(size, "utf8"),
             Buffer.from("\0"),
             contents,
-        ]);
-        const compressed = zlib.gzipSync(data);
+        ])
+        const compressed = zlib.gzipSync(data)
         return compressed
+        return data
+    }
+
+    static decodeObject(data: Buffer): string {
+        const decompressed = zlib.gunzipSync(data)
+        // const decompressed = data
+        const splits = bsplit(decompressed, Buffer.from("\0"), true)
+        const head = bsplit(splits[0], Buffer.from(" "))
+        const kind = head[0].toString("utf8")
+        const writeData = Buffer.concat(
+            splits.slice(1)
+        )
+        return this.writeObject(kind, writeData)
     }
 
     static isAncestor(ancestor: string, ref: string): boolean {
@@ -76,11 +90,11 @@ export class GitUtils {
                 exclude.push(`^${obj}`)
             }
         }
-        const objects = this.commandOutput("rev-list", "--objects", ref, ...exclude);
+        const objects = this.commandOutput("rev-list", "--objects", ref, ...exclude)
         if (!objects) {
-            return [];
+            return []
         }
-        return objects.split("\n").map((item) => item.split(" ")[0]).filter(item => item)
+        return objects.split("\n").map((item) => item.split(/\s/)[0]).filter(item => item)
     }
 
     static symbolicRef(ref: string): string {
@@ -91,6 +105,7 @@ export class GitUtils {
     static writeObject(kind: string, contents: Buffer): string {
         let res = spawnSync("git", ["hash-object", "-w", "--stdin", "-t", kind], { input: contents, encoding: "buffer" })
         if (res.status != 0) {
+            console.error(kind, contents)
             throw new Error("Failed to write object")
         }
         else {
@@ -111,17 +126,17 @@ export class GitUtils {
         let data = this.objectData(sha).toString("utf8").trim()
         if (kind == "tag") {
             // tag objects reference a single object
-            let obj = data.split("\n", 1)[0].split(" ")[1]
+            let obj = data.split("\n", 1)[0].split(/\s/)[1]
             return [obj]
         }
         else if (kind == "commit") {
             // commit objects reference a tree and zero or more parents
             let lines = data.split("\n")
-            let tree = lines[0].split(" ")[1]
+            let tree = lines[0].split(/\s/)[1]
             let objs = [tree]
-            for (let line of lines) {
+            for (let line of lines.slice(1)) {
                 if (line.startsWith("parent ")) {
-                    objs.push(line.split(" ")[1])
+                    objs.push(line.split(/\s/)[1])
                 }
                 else {
                     break
@@ -138,7 +153,7 @@ export class GitUtils {
             let lines = data.split("\n")
             // submodules have the mode '160000' and the kind 'commit', we filter them out because
             // there is nothing to download and this causes errors
-            return lines.filter(line => !line.startsWith("160000 commit ")).map(line => line.split(" ")[2])
+            return lines.filter(line => !line.startsWith("160000 commit ")).map(line => line.split(/\s/)[2])
         }
         else {
             throw new Error(`unexpected git object type: ${kind}`)

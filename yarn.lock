@@ -47,6 +47,13 @@
   resolved "https://registry.yarnpkg.com/@tsconfig/node16/-/node16-1.0.3.tgz#472eaab5f15c1ffdd7f8628bd4c4f753995ec79e"
   integrity sha512-yOlFc+7UtL/89t2ZhjPvvB/DeAr3r+Dq58IgzsFkOAvVC6NMJXmCGjbptdXdR9qsX7pKcTL+s87FtYREi2dEEQ==
 
+"@types/buffer-split@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@types/buffer-split/-/buffer-split-1.0.0.tgz#8c48f2224f95923f42628676358b3d9535de76f8"
+  integrity sha512-ctMRRk4AX6CnDUUx44hb5i6JMY+aj3cKsGmW3CDwoaVnNoo4E0ZRd+vVeBGjesZkU8cChIIsn77ELFJeTIXIeQ==
+  dependencies:
+    "@types/node" "*"
+
 "@types/debug@^4.1.7":
   version "4.1.7"
   resolved "https://registry.yarnpkg.com/@types/debug/-/debug-4.1.7.tgz#7cc0ea761509124709b8b2d1090d8f6c17aadb82"
@@ -58,6 +65,11 @@
   version "0.7.31"
   resolved "https://registry.yarnpkg.com/@types/ms/-/ms-0.7.31.tgz#31b7ca6407128a3d2bbc27fe2d21b345397f6197"
   integrity sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==
+
+"@types/node@*":
+  version "18.11.13"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.11.13.tgz#dff34f226ec1ac0432ae3b136ec5552bd3b9c0fe"
+  integrity sha512-IASpMGVcWpUsx5xBOrxMj7Bl8lqfuTY7FKAnPmu5cHkfQVWF8GulWS1jbRqA934qZL35xh5xN/+Xe/i26Bod4w==
 
 "@types/node@^18.11.10":
   version "18.11.11"
@@ -78,6 +90,18 @@ arg@^4.1.0:
   version "4.1.3"
   resolved "https://registry.yarnpkg.com/arg/-/arg-4.1.3.tgz#269fc7ad5b8e42cb63c896d5666017261c144089"
   integrity sha512-58S9QDqG0Xx27YwPSt9fJxivjYl432YCwfDMfZ+71RAqUrZef7LrKQZ3LHLOwCS4FLNBplP533Zx895SeOCHvA==
+
+buffer-indexof@~0.0.0:
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/buffer-indexof/-/buffer-indexof-0.0.2.tgz#ed0f36b7ae166a66a7cd174c0467ae8dedf008f5"
+  integrity sha512-mDMCCNLq1b+ICJ5VzS/D/Ca3bD9/3GxgCp+E+jqLwDTXHxRwQkQDfUOt4pJvmE53+YxfNNtNrxf3k/drNqJKJA==
+
+buffer-split@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/buffer-split/-/buffer-split-1.0.0.tgz#4427dbff53731b61d7a71aba47f503396613784a"
+  integrity sha512-orCFtxr4KDKi+5AYFDINPvnXtApMCy9moEklNYoGGfXebcFaeKlxK9Wbn6E7HGa3O5hrqYP2ixLXJzxV6RxGXA==
+  dependencies:
+    buffer-indexof "~0.0.0"
 
 create-require@^1.1.0:
   version "1.1.1"
