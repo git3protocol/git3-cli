@@ -276,6 +276,7 @@ const GitRemoteHelper = async ({
                 throw new Error('Unknown command #Py9QTP')
             }
         ),
+        // @ts-ignore
         asyncMap(async command => {
             if (command.command === GitCommands.capabilities) {
                 log(
@@ -335,9 +336,9 @@ const GitRemoteHelper = async ({
         tap(x => {
             logOutput('Sending response #31EyIs', JSON.stringify(x))
         })
-    )
-
-    rxToStream(output).pipe(stdout)
-}
+    );
+    // @ts-ignore
+    rxToStream(output).pipe(stdout);
+};
 
 export default GitRemoteHelper

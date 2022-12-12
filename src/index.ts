@@ -5,10 +5,14 @@ import Git from './git/git'
 import { log } from './git/log'
 import { MockStorage } from './storage/MockStorage'
 
+<<<<<<< HEAD
 
 
 
 let git: Git
+=======
+let git: Git;
+>>>>>>> 35ca1be (wip git3)
 GitRemoteHelper({
     env: process.env,
     stdin: process.stdin,
@@ -70,7 +74,6 @@ GitRemoteHelper({
         },
     },
 }).catch((error: any) => {
-    console.error("wtf")
-    console.error(error)
-
-})
+    console.error("wtf");
+    console.error(error);
+});

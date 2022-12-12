@@ -2,6 +2,7 @@
   "name": "git-remote-git3",
   "version": "1.0.0",
   "main": "dist/index.js",
+  "type": "module",
   "types": "dist/index.d.ts",
   "files": [
     "dist/"
@@ -19,8 +20,17 @@
   "license": "MIT",
   "dependencies": {
     "buffer-split": "^1.0.0",
+    "bip39": "^3.0.4",
+    "colors-cli": "^1.0.28",
+    "commander": "^9.4.1",
     "debug": "^4.3.4",
-    "rxjs": "^6.6.3",
+    "eth-ens-namehash": "^2.0.8",
+    "ethers": "^5.7.2",
+    "git-config-path": "^2.0.0",
+    "inquirer": "^9.1.4",
+    "js-sha3": "^0.8.0",
+    "parse-git-config": "^3.0.0",
+    "rxjs": "^7.6.0",
     "rxjs-async-map": "^0.2.0",
     "rxjs-stream": "^3.2.1",
     "superpathjoin": "^2.0.1"

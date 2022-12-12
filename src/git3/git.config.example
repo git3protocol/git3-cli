@@ -1,0 +1,18 @@
+[core]
+        repositoryformatversion = 0
+        filemode = true
+        bare = false
+        logallrefupdates = true
+        ignorecase = true
+        precomposeunicode = true
+[remote "origin"]
+        url = git@github.com:cyhhao/git-remote-git3.git
+        fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "master"]
+        remote = origin
+        merge = refs/heads/master
+[pull]
+        rebase = true
+[remote "g3"]
+        url = git3://git3
+        fetch = +refs/heads/*:refs/remotes/g3/*
