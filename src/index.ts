@@ -30,7 +30,7 @@ GitRemoteHelper({
             remoteUrl: string;
             forPush: boolean;
         }) => {
-            log('list log', p)
+            log('list', p)
 
             let out = await git.do_list(p.forPush)
             log("list out:\n", out)

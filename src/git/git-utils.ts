@@ -1,22 +1,19 @@
-import util from 'util'
-import childProcess from 'child_process'
-const exec = util.promisify(childProcess.exec);
+import childProcess, { spawnSync } from 'child_process'
 import * as zlib from "zlib";
 
 export class GitUtils {
-    static async commandOK(...args: string[]): Promise<boolean> {
-        try {
-            await exec(`git ${args.join(" ")}`)
-            return true
-        }
-        catch (e) {
-            return false
-        }
+    static EMPTY_TREE_HASH: string = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+
+    static commandOK(...args: string[]): boolean {
+        let res = childProcess.spawnSync("git", args, { encoding: "utf8" })
+        return res.status == 0
+
     }
 
-    static async commandOutput(...args: string[]): Promise<string> {
+    static commandOutput(...args: string[]): string {
         try {
-            const { stdout } = await exec(`git ${args.join(" ")}`, { encoding: "utf8" })
+            // const { stdout } = exec(`git ${args.join(" ")}`, { encoding: "utf8" })
+            const { stdout } = spawnSync("git", args, { encoding: "utf8" })
             return stdout
         }
         catch (e) {
@@ -24,9 +21,9 @@ export class GitUtils {
         }
     }
 
-    static async commandRaw(...args: string[]): Promise<Buffer> {
+    static commandRaw(...args: string[]): Buffer {
         try {
-            const { stdout } = await exec(`git ${args.join(" ")}`, { encoding: "buffer" })
+            const { stdout } = spawnSync("git", args, { encoding: "buffer" })
             return stdout
         }
         catch (e) {
@@ -34,25 +31,25 @@ export class GitUtils {
         }
     }
 
-    static async objectExists(sha: string): Promise<boolean> {
-        return await this.commandOK("cat-file", "-e", sha)
+    static objectExists(sha: string): boolean {
+        return this.commandOK("cat-file", "-e", sha)
     }
-    static async objectKind(sha: string): Promise<string> {
-        return await this.commandOutput("cat-file", "-t", sha)
+    static objectKind(sha: string): string {
+        return this.commandOutput("cat-file", "-t", sha)
     }
 
-    static async objectData(sha: string, kind: string): Promise<Buffer> {
+    static objectData(sha: string, kind: string | null = null): Buffer {
         if (kind) {
-            return await this.commandRaw("cat-file", kind, sha)
+            return this.commandRaw("cat-file", kind, sha)
         } else {
-            return await this.commandRaw("cat-file", "-p", sha)
+            return this.commandRaw("cat-file", "-p", sha)
         }
     }
 
-    static async encodeObject(sha: string): Promise<Buffer> {
-        let kind = await this.objectKind(sha)
-        let size = await this.commandOutput("cat-file", "-s", sha)
-        let contents = await this.objectData(sha, kind)
+    static encodeObject(sha: string): Buffer {
+        let kind = this.objectKind(sha)
+        let size = this.commandOutput("cat-file", "-s", sha)
+        let contents = this.objectData(sha, kind)
         const data = Buffer.concat([
             Buffer.from(kind, "utf8"),
             Buffer.from(" "),
@@ -64,30 +61,87 @@ export class GitUtils {
         return compressed
     }
 
-    static async isAncestor(ancestor: string, ref: string): Promise<boolean> {
-        return await this.commandOK("merge-base", "--is-ancestor", ancestor, ref)
+    static isAncestor(ancestor: string, ref: string): boolean {
+        return this.commandOK("merge-base", "--is-ancestor", ancestor, ref)
     }
 
-    static async refValue(ref: string): Promise<string> {
-        let sha = await this.commandOutput("rev-parse", ref)
+    static refValue(ref: string): string {
+        let sha = this.commandOutput("rev-parse", ref)
         return sha.trim()
     }
-    static async listObjects(ref: string, excludeList: string[]): Promise<string[]> {
+    static listObjects(ref: string, excludeList: string[]): string[] {
         let exclude: string[] = []
         for (let obj of excludeList) {
-            if (!await this.objectExists(obj)) {
+            if (this.objectExists(obj)) {
                 exclude.push(`^${obj}`)
             }
         }
-        const objects = await this.commandOutput("rev-list", "--objects", ref, ...exclude);
+        const objects = this.commandOutput("rev-list", "--objects", ref, ...exclude);
         if (!objects) {
             return [];
         }
         return objects.split("\n").map((item) => item.split(" ")[0]).filter(item => item)
     }
 
-    static async symbolicRef(ref: string): Promise<string> {
-        let path = await this.commandOutput("symbolic-ref", ref)
+    static symbolicRef(ref: string): string {
+        let path = this.commandOutput("symbolic-ref", ref)
         return path.trim()
+    }
+
+    static writeObject(kind: string, contents: Buffer): string {
+        let res = spawnSync("git", ["hash-object", "-w", "--stdin", "-t", kind], { input: contents, encoding: "buffer" })
+        if (res.status != 0) {
+            throw new Error("Failed to write object")
+        }
+        else {
+            return res.stdout.toString("utf8").trim()
+        }
+    }
+
+    static historyExists(sha: string): boolean {
+        return this.commandOK("rev-list", "--objects", sha)
+    }
+
+    static referencedObjects(sha: string): string[] {
+        let kind = this.objectKind(sha)
+        if (kind == "blob") {
+            // blob objects do not reference any other objects
+            return []
+        }
+        let data = this.objectData(sha).toString("utf8").trim()
+        if (kind == "tag") {
+            // tag objects reference a single object
+            let obj = data.split("\n", 1)[0].split(" ")[1]
+            return [obj]
+        }
+        else if (kind == "commit") {
+            // commit objects reference a tree and zero or more parents
+            let lines = data.split("\n")
+            let tree = lines[0].split(" ")[1]
+            let objs = [tree]
+            for (let line of lines) {
+                if (line.startsWith("parent ")) {
+                    objs.push(line.split(" ")[1])
+                }
+                else {
+                    break
+                }
+            }
+            return objs
+        }
+        else if (kind == "tree") {
+            // tree objects reference zero or more trees and blobs, or submodules
+            if (!data) {
+                // empty tree
+                return []
+            }
+            let lines = data.split("\n")
+            // submodules have the mode '160000' and the kind 'commit', we filter them out because
+            // there is nothing to download and this causes errors
+            return lines.filter(line => !line.startsWith("160000 commit ")).map(line => line.split(" ")[2])
+        }
+        else {
+            throw new Error(`unexpected git object type: ${kind}`)
+        }
     }
 }

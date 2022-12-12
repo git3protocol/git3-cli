@@ -9,6 +9,7 @@ class Git {
     remoteUrl: string
     storage: Storage
     refs: Map<string, string> = new Map();
+    pushed: Map<string, string> = new Map();
 
     constructor(info: ApiBaseParams, storage: Storage) {
         this.gitdir = info.gitdir
@@ -16,6 +17,7 @@ class Git {
         this.remoteUrl = info.remoteUrl
         this.storage = storage
         this.refs = new Map()
+        this.pushed = new Map()
     }
 
     async do_list(forPush: boolean) {
@@ -36,7 +38,40 @@ class Git {
     }
 
     async do_fetch(refs: { ref: string; oid: string }[]) {
+        for (let ref of refs) {
+            await this.fetch(ref.oid)
+        }
+    }
 
+    async fetch(oid: string) {
+        let downloaded = new Set<string>()
+        let pending = new Set<string>()
+        let queue = [oid]
+
+        while (queue.length > 0 || pending.size > 0) {
+            if (queue.length > 0) {
+                let sha = queue.pop() || ""
+                if (downloaded.has(sha) || pending.has(sha)) continue
+                if (GitUtils.objectExists(sha)) {
+                    if (sha == GitUtils.EMPTY_TREE_HASH) {
+                        GitUtils.writeObject("tree", Buffer.from(""))
+                    }
+                    if (!GitUtils.historyExists(sha)) {
+                        log("missing part of history from", sha)
+                        queue.push(...GitUtils.referencedObjects(sha))
+                    }
+                    else {
+                        log("already downloaded", sha)
+                    }
+                }
+                else {
+                    pending.add(sha)
+                }
+            }
+            else {
+
+            }
+        }
     }
 
     async do_push(refs: {
@@ -48,14 +83,21 @@ class Git {
         // let remoteHead = null
         for (let ref of refs) {
             if (ref.src == "") {
-                this.storage.delete(ref.dst)
+                if (this.refs.get("HEAD") == ref.dst) {
+                    return `error ${ref.dst} refusing to delete the current branch: ${ref.dst}` + "\n\n"
+                }
+                log("deleting ref", ref.dst)
+                this.storage.removeRef(ref.dst)
+
+                this.refs.delete(ref.dst)
+                this.pushed.delete(ref.dst)
             } else {
                 outLines.push(await this.push(ref.src, ref.dst) + "\n")
             }
         }
         if (this.refs.size == 0) {
             // first push
-            let symbolicRef = await GitUtils.symbolicRef("HEAD")
+            let symbolicRef = GitUtils.symbolicRef("HEAD")
             await this.wirteRef(symbolicRef, "HEAD", true)
         }
         log("outLines", outLines)
@@ -70,14 +112,16 @@ class Git {
             force = true
         }
         let present = Array.from(this.refs.values())
-        let objects = await GitUtils.listObjects(src, present)
+        present.push(...Array.from(this.pushed.values()))
+        let objects = GitUtils.listObjects(src, present)
         log("listObjects", objects)
         for (let obj of objects) {
             await this.putObject(obj)
         }
-        let sha = await GitUtils.refValue(src)
+        let sha = GitUtils.refValue(src)
         let err = await this.wirteRef(sha, dst, force)
         if (!err) {
+            this.pushed.set(dst, sha)
             return `ok ${dst}`
         } else {
             return `error ${dst} ${err}`
@@ -85,10 +129,9 @@ class Git {
     }
 
     async wirteRef(newSha: string, dst: string, force: boolean): Promise<string | null> {
-
         let sha = this.refs.get(dst)
         if (sha) {
-            if (!await GitUtils.objectExists(sha)) {
+            if (!GitUtils.objectExists(sha)) {
                 return "fetch first"
             }
             let isFastForward = GitUtils.isAncestor(sha, newSha)
@@ -108,7 +151,7 @@ class Git {
     }
 
     async putObject(sha: string) {
-        let data = await GitUtils.encodeObject(sha)
+        let data = GitUtils.encodeObject(sha)
         let path = this.objectPath(sha)
         log("writing...", path, sha)
         let status = await this.storage.upload(path, data)
@@ -120,6 +163,7 @@ class Git {
         const suffix = name.slice(2);
         return join("objects", prefix, suffix);
     }
+
     async read_symbolic_ref(path: string) {
         path = join(this.gitdir, path)
         log("fetching symbolic ref: ", path)

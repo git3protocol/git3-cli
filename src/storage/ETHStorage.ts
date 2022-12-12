@@ -48,7 +48,7 @@ export class ETHStorage implements Storage {
         await fs.writeFile(stPath, JSON.stringify(dict))
         return Status.SUCCEED
     }
-    async delRef(path: string): Promise<Status> {
+    async removeRef(path: string): Promise<Status> {
         let stPath = join(mockPath, "refs.json")
         let refsJson = await fs.readFile(stPath)
         let dict = JSON.parse(refsJson.toString())
@@ -56,7 +56,7 @@ export class ETHStorage implements Storage {
         return Status.SUCCEED
     }
 
-    async delete(path: string): Promise<Status> {
+    async remove(path: string): Promise<Status> {
         throw new Error("Method not implemented.");
     }
     async download(path: string): Promise<[Status, Buffer]> {
