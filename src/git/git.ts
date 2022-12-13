@@ -169,7 +169,7 @@ class Git {
         let data = GitUtils.encodeObject(sha)
         let path = this.objectPath(sha)
         log("writing...", path, sha)
-        let status = await this.storage.upload(path, data, this.remoteName, this.remoteUrl)
+        let status = await this.storage.upload(path, data)
         log("status", status)
     }
 

@@ -29,8 +29,8 @@ export class MockStorage implements Storage {
         catch (e) {
             return []
         }
-
     }
+
     async setRef(path: string, sha: string): Promise<Status> {
         let dict
         let stPath = join(mockPath, "refs.json")
@@ -47,6 +47,7 @@ export class MockStorage implements Storage {
         await fs.writeFile(stPath, JSON.stringify(dict))
         return Status.SUCCEED
     }
+    
     async removeRef(path: string): Promise<Status> {
         let stPath = join(mockPath, "refs.json")
         let refsJson = await fs.readFile(stPath)
@@ -59,11 +60,11 @@ export class MockStorage implements Storage {
     async remove(path: string): Promise<Status> {
         throw new Error("Method not implemented.")
     }
+
     async download(path: string): Promise<[Status, Buffer]> {
         let buffer = await fs.readFile(join(mockPath, path))
         return [Status.SUCCEED, buffer]
     }
-
 
     async upload(path: string, file: Buffer): Promise<Status> {
         let stPath = join(mockPath, path)
