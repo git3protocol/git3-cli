@@ -131,9 +131,12 @@ class Git {
         let present = Array.from(this.refs.values())
         present.push(...Array.from(this.pushed.values()))
         let objects = GitUtils.listObjects(src, present)
+        let pendings = []
         for (let obj of objects) {
-            await this.putObject(obj)
+            pendings.push(this.putObject(obj))
         }
+        await Promise.all(pendings)
+        
         let sha = GitUtils.refValue(src)
         let err = await this.wirteRef(sha, dst, force)
         if (!err) {

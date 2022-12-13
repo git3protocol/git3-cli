@@ -19,6 +19,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@ethersproject/experimental": "^5.7.0",
     "bip39": "^3.0.4",
     "buffer-split": "^1.0.0",
     "colors-cli": "^1.0.28",
@@ -42,7 +43,7 @@
     "install-mac-arm": "yarn pkg && cp ./bin/git3-cli-macos-arm64 /usr/local/bin/git-remote-git3",
     "pkg": "yarn run build && pkg .",
     "build:git3": "esbuild ./src/git3/index.js --bundle --platform=node --target=es6 --outfile=dist/git3.js",
-    "pkg:git3": "yarn build:git3 && pkg dist/git3.js --output bin/git3 && sudo cp bin/git3 /usr/local/bin/git3",
+    "pkg:git3": "yarn build:git3 && pkg dist/git3.js --output bin/git3 && cp bin/git3 /usr/local/bin/git3",
     "clean": "rm -rf ./dist ./bin"
   },
   "devDependencies": {
