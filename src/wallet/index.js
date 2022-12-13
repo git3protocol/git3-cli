@@ -27,12 +27,17 @@ export async function callContractMethod ({
   const pathBuffer = path ? Buffer.from(path) : ''
 
   if (method === 'upload') {  
-    await contract.upload(pathBuffer, file)
+    const uploadResult = await contract.upload(pathBuffer, file)
+    console.error(`=== upload file ${path} result ===`)
+    console.error(uploadResult)
   }
 
   if (method === 'download') {
     const res = await contract.download(pathBuffer)
     const buf = Buffer.from(res[0].slice(2), 'hex')
+
+    console.error(`=== download file ${path} result ===`)
+    console.error(buf.toString('utf-8'))
     return buf
   }
 
@@ -42,10 +47,12 @@ export async function callContractMethod ({
 
   if (method === 'listRefs') {
     const res = await contract.listRefs()
-    const refs = res.map(i => ({
+    let refs = res.map(i => ({
       ref: i[1],
       sha: i[0].slice(2)
     }))
+
+    refs = refs.concat([{ ref: 'HEAD', sha: 'refs/heads/main' }])
     return refs
   }
 }
