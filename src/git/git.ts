@@ -136,7 +136,7 @@ class Git {
             pendings.push(this.putObject(obj))
         }
         await Promise.all(pendings)
-        
+
         let sha = GitUtils.refValue(src)
         let err = await this.wirteRef(sha, dst, force)
         if (!err) {
@@ -160,7 +160,7 @@ class Git {
         }
         let status
         if (dst == "HEAD") {
-            status = await this.storage.setRef(`HEAD:${newSha}`, "0000000000000000000000000000000000000000")
+            status = await this.storage.setRef(`HEAD:${newSha}`, "0000000000000000000000000000000000001ead")
         } else {
             status = await this.storage.setRef(dst, newSha)
         }
@@ -191,7 +191,7 @@ class Git {
     async get_refs(forPush: boolean): Promise<Ref[]> {
         let refs = await this.storage.listRefs()
         for (let item of refs) {
-            if (item.sha == "0000000000000000000000000000000000000000") {
+            if (item.sha == "0000000000000000000000000000000000001ead") {
                 item.sha = item.ref.split("HEAD:")[1]
                 item.ref = "HEAD"
             }
