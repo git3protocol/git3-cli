@@ -4,7 +4,7 @@ import parse from 'parse-git-config'
 import abi from './abi.js'
 
 // path -> /ab/123ab3123
-export async function callContractMethod ({
+export async function callContractMethod({
   method = 'upload',
   path,
   file,
@@ -13,7 +13,7 @@ export async function callContractMethod ({
   const wallet = 'default'
   const keyPath = process.env.HOME + "/.git3/keys"
   mkdirSync(keyPath, { recursive: true })
-  
+
   const content = readFileSync(`${keyPath}/${wallet}`).toString()
   const [walletType, key] = content.split('\n')
   const provider = new ethers.providers.JsonRpcProvider('https://galileo.web3q.io:8545');
@@ -23,10 +23,10 @@ export async function callContractMethod ({
     : ethers.Wallet.fromMnemonic(key)
 
   etherWallet = etherWallet.connect(provider)
-  const contract = new ethers.Contract('0x680336910D9357F6aDf26c0d61eAB8e65998Ab2d', abi, etherWallet);
+  const contract = new ethers.Contract('0xb940B75947F64C9fe0b4B2b6c56Fc9DEF03bBb5F', abi, etherWallet);
   const pathBuffer = path ? Buffer.from(path) : ''
 
-  if (method === 'upload') {  
+  if (method === 'upload') {
     const uploadResult = await contract.upload(pathBuffer, file)
     console.error(`=== upload file ${path} result ===`)
     console.error(uploadResult)
@@ -52,23 +52,7 @@ export async function callContractMethod ({
       sha: i[0].slice(2)
     }))
 
-    refs = refs.concat([{ ref: 'HEAD', sha: 'refs/heads/main' }])
+    // refs = refs.concat([{ ref: 'HEAD', sha: 'refs/heads/main' }])
     return refs
   }
 }
-
-// callContractMethod('kai', 'upload', '/07/549ed56229550960d2cb32b086df52304d9a86')
-// callContractMethod('kai', 'download', '/07/549ed56229550960d2cb32b086df52304d9a86')
-// callContractMethod({
-//   wallet: 'kai',
-//   method: 'setRef',
-//   path: '/refs/heads/master',
-//   sha: '07549ed56229550960d2cb32b086df52304d9a86'
-// })
-
-callContractMethod({
-  wallet: 'kai',
-  method: 'listRefs',
-  // path: '/refs/heads/master',
-  // sha: '07549ed56229550960d2cb32b086df52304d9a86'
-})

@@ -155,7 +155,13 @@ class Git {
                 return "non-fast forward"
             }
         }
-        let status = await this.storage.setRef(dst, newSha)
+        let status
+        if (dst == "HEAD") {
+            status = await this.storage.setRef(`HEAD:${newSha}`, "0000000000000000000000000000000000000000")
+        } else {
+            status = await this.storage.setRef(dst, newSha)
+        }
+
         if (status == Status.SUCCEED) {
             return null
         }
@@ -181,6 +187,12 @@ class Git {
 
     async get_refs(forPush: boolean): Promise<Ref[]> {
         let refs = await this.storage.listRefs()
+        for (let item of refs) {
+            if (item.sha == "0000000000000000000000000000000000000000") {
+                item.sha = item.ref.split("HEAD:")[1]
+                item.ref = "HEAD"
+            }
+        }
         return refs
     }
 
