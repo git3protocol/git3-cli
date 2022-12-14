@@ -16,7 +16,7 @@ export class ETHStorage implements Storage {
         this.provider = new ethers.providers.JsonRpcProvider('https://galileo.web3q.io:8545')
         this.wallet = this.wallet.connect(this.provider)
         this.wallet = new NonceManager(this.wallet)
-        this.contract = new ethers.Contract('0xb940B75947F64C9fe0b4B2b6c56Fc9DEF03bBb5F', abi, this.wallet)
+        this.contract = new ethers.Contract('0x01d2681e3F4dED1750359F066a42a768Adaa142F', abi, this.wallet)
     }
 
     async download(path: string): Promise<[Status, Buffer]> {
