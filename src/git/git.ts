@@ -12,6 +12,7 @@ class Git {
     pushed: Map<string, string> = new Map()
     head: string | null
 
+
     constructor(info: ApiBaseParams, storage: Storage) {
         this.gitdir = info.gitdir
         this.remoteName = info.remoteName
@@ -22,9 +23,9 @@ class Git {
         this.head = null
     }
 
-    async do_list(forPush: boolean) {
+    async doList(forPush: boolean) {
         let outLines: string[] = []
-        let refs = await this.get_refs(forPush)
+        let refs = await this.getRefs(forPush)
         for (let ref of refs) {
             if (ref.ref == "HEAD") {
                 if (!forPush) outLines.push(`@${ref.sha} HEAD\n`)
@@ -40,28 +41,31 @@ class Git {
         return outLines.join("") + "\n"
     }
 
-    async do_fetch(refs: { ref: string, oid: string }[]) {
+    async doFetch(refs: { ref: string, oid: string }[]) {
         for (let ref of refs) {
             await this.fetch(ref.oid)
         }
         return "\n\n"
     }
 
-    async do_push(refs: {
+    async doPush(refs: {
         src: string
         dst: string
         force: boolean
     }[]): Promise<string> {
+
         let outLines: string[] = []
         // let remoteHead = null
         for (let ref of refs) {
+            if (!await this.storage.hasPermission(ref.dst)) {
+                return `error ${ref.dst} refusing to push to remote ${this.remoteUrl} (permission denied)` + "\n\n"
+            }
             if (ref.src == "") {
                 if (this.refs.get("HEAD") == ref.dst) {
                     return `error ${ref.dst} refusing to delete the current branch: ${ref.dst}` + "\n\n"
                 }
                 log("deleting ref", ref.dst)
                 this.storage.removeRef(ref.dst)
-
                 this.refs.delete(ref.dst)
                 this.pushed.delete(ref.dst)
             } else {
@@ -131,7 +135,7 @@ class Git {
         let present = Array.from(this.refs.values())
         present.push(...Array.from(this.pushed.values()))
         let objects = GitUtils.listObjects(src, present)
-        let pendings = []
+        let pendings: Promise<string>[] = []
         for (let obj of objects) {
             pendings.push(this.putObject(obj))
         }
@@ -174,12 +178,13 @@ class Git {
 
     }
 
-    async putObject(sha: string) {
+    async putObject(sha: string): Promise<string> {
         let data = GitUtils.encodeObject(sha)
         let path = this.objectPath(sha)
-        log("writing...", path, sha)
+        log("writing...", path)
         let status = await this.storage.upload(path, data)
         log("status", status)
+        return status
     }
 
     objectPath(name: string): string {
@@ -188,7 +193,7 @@ class Git {
         return join("objects", prefix, suffix)
     }
 
-    async get_refs(forPush: boolean): Promise<Ref[]> {
+    async getRefs(forPush: boolean): Promise<Ref[]> {
         let refs = await this.storage.listRefs()
         for (let item of refs) {
             if (item.sha == "0000000000000000000000000000000000001ead") {

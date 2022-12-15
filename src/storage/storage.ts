@@ -12,8 +12,9 @@ export type Ref = {
 }
 
 export interface Storage {
-    repoURI: string
+    repoName: string
 
+    hasPermission(ref: string): Promise<boolean>
     download(path: string): Promise<[Status, Buffer]>
     upload(path: string, file: Buffer): Promise<Status>
     remove(path: string): Promise<Status>

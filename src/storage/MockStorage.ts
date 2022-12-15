@@ -8,10 +8,14 @@ const log = console.error
 log("mock path", mockPath)
 
 export class MockStorage implements Storage {
-    repoURI: string
+    repoName: string
 
-    constructor(repoURI: string) {
-        this.repoURI = repoURI
+    constructor() {
+        this.repoName = "mock"
+    }
+
+    async hasPermission(ref: string): Promise<boolean> {
+        return true
     }
 
     async listRefs(): Promise<Ref[]> {
@@ -47,7 +51,7 @@ export class MockStorage implements Storage {
         await fs.writeFile(stPath, JSON.stringify(dict))
         return Status.SUCCEED
     }
-    
+
     async removeRef(path: string): Promise<Status> {
         let stPath = join(mockPath, "refs.json")
         let refsJson = await fs.readFile(stPath)

@@ -2,35 +2,54 @@ import { Ref, Status, Storage } from "./storage"
 import { getWallet } from "../wallet/index"
 import { ethers, Signer } from "ethers"
 import { NonceManager } from "@ethersproject/experimental"
-
-const abi = '[{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"inputs":[{"internalType":"bytes","name":"name","type":"bytes"}],"name":"countChunks","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"name","type":"string"}],"name":"delRef","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"bytes","name":"path","type":"bytes"}],"name":"download","outputs":[{"internalType":"bytes","name":"","type":"bytes"},{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"listRefs","outputs":[{"components":[{"internalType":"bytes20","name":"hash","type":"bytes20"},{"internalType":"string","name":"name","type":"string"}],"internalType":"struct Git3.refData[]","name":"list","type":"tuple[]"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"","type":"string"}],"name":"nameToRefInfo","outputs":[{"internalType":"bytes20","name":"hash","type":"bytes20"},{"internalType":"uint96","name":"index","type":"uint96"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"refs","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"val","type":"uint256"}],"name":"refund","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"refund1","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"bytes","name":"path","type":"bytes"}],"name":"remove","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"name","type":"string"},{"internalType":"bytes20","name":"refHash","type":"bytes20"}],"name":"setRef","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"bytes","name":"name","type":"bytes"}],"name":"size","outputs":[{"internalType":"uint256","name":"","type":"uint256"},{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"storageManager","outputs":[{"internalType":"contract IFileOperator","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"bytes","name":"path","type":"bytes"},{"internalType":"bytes","name":"data","type":"bytes"}],"name":"upload","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[{"internalType":"bytes","name":"path","type":"bytes"},{"internalType":"uint256","name":"chunkId","type":"uint256"},{"internalType":"bytes","name":"data","type":"bytes"}],"name":"uploadChunk","outputs":[],"stateMutability":"payable","type":"function"}]'
+import abis from "../config/abis"
+import network from "../config/evm-network"
 export class ETHStorage implements Storage {
-    repoURI: string
+    repoName: string
     wallet: Signer
     contract: ethers.Contract
     provider: ethers.providers.JsonRpcProvider
 
-    constructor(repoURI: string) {
-        this.repoURI = repoURI
-        this.wallet = getWallet()
-        this.provider = new ethers.providers.JsonRpcProvider('https://galileo.web3q.io:8545')
+    constructor(repoName: string, chainId: number, options: { git3Address: string | null, sender: string | null }) {
+        let net = network[chainId]
+        if (!net) throw new Error("chainId not supported")
+
+        this.repoName = repoName
+        this.wallet = getWallet(options.sender)
+
+        let rpc = net.rpc[Math.floor(Math.random() * net.rpc.length)] //random get rpc
+
+        this.provider = new ethers.providers.JsonRpcProvider(rpc)
         this.wallet = this.wallet.connect(this.provider)
         this.wallet = new NonceManager(this.wallet)
-        this.contract = new ethers.Contract('0x01d2681e3F4dED1750359F066a42a768Adaa142F', abi, this.wallet)
+
+        let repoAddress = options.git3Address || net.contracts.git3
+        this.contract = new ethers.Contract(repoAddress, abis.ETHStorage, this.wallet)
+    }
+
+    async repoRoles(): Promise<string[]> {
+        let owner = await this.contract.repoNameToOwner(Buffer.from(this.repoName))
+        if (owner === ethers.constants.AddressZero) return []
+        return [owner]
+    }
+
+    async hasPermission(ref: string): Promise<boolean> {
+        let member = await this.repoRoles()
+        return member.indexOf(await this.wallet.getAddress()) >= 0
     }
 
     async download(path: string): Promise<[Status, Buffer]> {
-        const res = await this.contract.download(Buffer.from(path))
+        const res = await this.contract.download(Buffer.from(this.repoName), Buffer.from(path))
         const buffer = Buffer.from(res[0].slice(2), 'hex')
         console.error(`=== download file ${path} result ===`)
-        console.error(buffer.toString('utf-8'))
+        // console.error(buffer.toString('utf-8'))
         return [Status.SUCCEED, buffer]
     }
 
     async upload(path: string, file: Buffer): Promise<Status> {
-        const uploadResult = await this.contract.upload(Buffer.from(path), file)
-        console.error(`=== upload file ${path} result ===`)
-        console.error(uploadResult)
+        const uploadResult = await this.contract.upload(Buffer.from(this.repoName), Buffer.from(path), file)
+        console.error(`=== upload file ${path} ===`)
+        console.error("upload done:", uploadResult.hash)
         return Status.SUCCEED
     }
 
@@ -39,20 +58,21 @@ export class ETHStorage implements Storage {
     }
 
     async listRefs(): Promise<Ref[]> {
-        const res: string[][] = await this.contract.listRefs()
+        const res: string[][] = await this.contract.listRefs(Buffer.from(this.repoName))
         let refs = res.map(i => ({
-            ref: i[1],
+            ref: Buffer.from(i[1].slice(2), "hex").toString("utf8").slice(this.repoName.length + 1),
             sha: i[0].slice(2)
         }))
         return refs
     }
 
     async setRef(path: string, sha: string): Promise<Status> {
-        await this.contract.setRef(path, '0x' + sha)
+        await this.contract.setRef(Buffer.from(this.repoName), Buffer.from(path), '0x' + sha)
         return Status.SUCCEED
     }
 
-    removeRef(path: string): Promise<Status> {
-        throw new Error("Method not implemented.")
+    async removeRef(path: string): Promise<Status> {
+        await this.contract.delRef(Buffer.from(this.repoName), Buffer.from(path))
+        return Status.SUCCEED
     }
 }
