@@ -25,7 +25,7 @@ GitRemoteHelper({
                 } else {
                     // use Default git3Address
                     git3Address = null
-                    repoName = url.hostname
+                    repoName = url.hostname.startsWith("/") ? url.hostname.slice(1) : url.hostname
                 }
             }
             else {
