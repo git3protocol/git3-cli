@@ -34,13 +34,13 @@ select `default` wallet, git3 official contract address, on ETHStorage chainId: 
 It's equl to `git3://default@git3.w3q:3334/helloworld`
 
 - `git3://myname.eth@git3.w3q/helloworld`  
-use `myname.eth` wallet, `git3.w3q` contract address, on ETHStorage chainId: 3334, repo name is `helloworld`
+select `myname.eth` wallet, `git3.w3q` contract address, on ETHStorage chainId: 3334, repo name is `helloworld`
 
 - `git3://your_git3.eth:137/helloworld`  
-use `default` wallet, `your_git3.eth` contract address, on Polygon chainId: 137, repo name is `helloworld`
+select `default` wallet, `your_git3.eth` contract address, on Polygon chainId: 137, repo name is `helloworld`
 
 - `git3://0x0068bD3ec8D16402690C1Eddff06ACb913A209ef:1/helloworld`  
-use `default` wallet, `0x0068...9ef` contract address, on ETH chainId: 1, repo name is `helloworld`
+select `default` wallet, `0x0068...9ef` contract address, on ETH chainId: 1, repo name is `helloworld`
 
 
 
