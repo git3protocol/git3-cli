@@ -16,7 +16,7 @@ yarn pkg
 yarn install-mac
 ```
 
-# git3 uri protocol
+# git3 URI protocol
 ```
 git3://[sender_wallet]@[contract_address or NS]:[chain_id]/<repo_name>
 ```
