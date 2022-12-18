@@ -5,6 +5,7 @@ import bip39 from 'bip39'
 import inquirer from 'inquirer'
 import parse from 'parse-git-config'
 import { importActions, generateActions } from './actions.js'
+import abis from './abi.js'
 const program = new Command()
 
 program
@@ -119,6 +120,41 @@ program.command('delete')
       const { wallet } = answers
       rmSync(`${keyPath}/${wallet}`)
     })
+  })
+
+program.command('create')
+  .argument('[wallet]', 'wallet to use', 'default')
+  .argument('[repo]', 'repo name to create')
+  .description('create a new repo')
+  .action((wallet, repo) => {
+
+    const keyPath = process.env.HOME + "/.git3/keys"
+    mkdirSync(keyPath, { recursive: true })
+    const content = readFileSync(`${keyPath}/${wallet}`).toString()
+
+    const [walletType, key] = content.split('\n')
+    const provider = new ethers.providers.JsonRpcProvider('https://galileo.web3q.io:8545');
+
+    let etherWallet = walletType === 'privateKey'
+      ? new ethers.Wallet(key)
+      : ethers.Wallet.fromMnemonic(key)
+
+    etherWallet = etherWallet.connect(provider)
+    const contract = new ethers.Contract(
+      '0x0068bD3ec8D16402690C1Eddff06ACb913A209ef',
+      abis.ETHStorage,
+      etherWallet, {
+        gasLimit: 10000000000
+      })
+
+
+    contract.repoNameToOwner(Buffer.from(repo))
+      .then(res => { console.log(res) })
+      .catch(err => { console.error(err) })
+    contract.createRepo(Buffer.from(repo))
+      .then(res => { console.log(res) })
+      .catch(err => { console.error(err) })
+
   })
 
 program.command('info')
