@@ -35,7 +35,7 @@ const evmNetworks: Record<number, any> = {
                 "standard": "EIP3091"
             }
         ],
-        "contracts": { "git3": "0xee2879cd03A3D82C0Ffb648AA5773bcEBb0d5741" }
+        "contracts": { "git3": "0x608860940b8f3D3247E1B301Cf2fA5690e6504DD" }
     }
 
 }
