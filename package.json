@@ -33,7 +33,7 @@
   },
   "scripts": {
     "build": "yarn clean && tsc",
-    "install-linux": "yarn pkg:linux && cp ./bin/index-linux-x64 /usr/local/bin/git-remote-git3",
+    "install-linux": "yarn pkg:linux && cp ./bin/index /usr/local/bin/git-remote-git3",
     "install-mac": "yarn pkg && cp ./bin/index-macos-x64 /usr/local/bin/git-remote-git3",
     "install-mac-arm": "yarn pkg && cp ./bin/index-macos-arm64 /usr/local/bin/git-remote-git3",
     "pkg:linux": "yarn build && pkg ./dist/index.js --out-path bin/ --targets node18-linux-x64",
