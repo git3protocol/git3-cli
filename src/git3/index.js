@@ -5,7 +5,8 @@ import bip39 from 'bip39'
 import inquirer from 'inquirer'
 import parse from 'parse-git-config'
 import { importActions, generateActions } from './actions.js'
-import abis from './abi.js'
+import abis from "../config/abis"
+import network from "../config/evm-network"
 const program = new Command()
 
 program
@@ -140,8 +141,9 @@ program.command('create')
       : ethers.Wallet.fromMnemonic(key)
 
     etherWallet = etherWallet.connect(provider)
+    let net= network[3334]
     const contract = new ethers.Contract(
-      '0x0068bD3ec8D16402690C1Eddff06ACb913A209ef',
+      net.contracts.git3,
       abis.ETHStorage,
       etherWallet, {
         gasLimit: 10000000000
