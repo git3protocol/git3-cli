@@ -47,10 +47,20 @@ export class ETHStorage implements Storage {
     }
 
     async upload(path: string, file: Buffer): Promise<Status> {
-        const uploadResult = await this.contract.upload(Buffer.from(this.repoName), Buffer.from(path), file)
-        console.error(`=== upload file ${path} ===`)
-        console.error("upload done:", uploadResult.hash)
-        return Status.SUCCEED
+        try {
+            console.error(`=== uploading file ${path} ===`)
+            const tx = await this.contract.upload(Buffer.from(this.repoName), Buffer.from(path), file, { gasLimit: 6000000 })
+            console.error(`send tx done: ${tx.hash}`)
+            await new Promise(r => setTimeout(r, 3000))
+            await tx.wait(1)
+            console.error(`upload succeed: ${tx.hash}`)
+            return Status.SUCCEED
+        }
+        catch (error: any) {
+            console.error(`upload failed ${error.reason ? error.reason : "CALL_EXCEPTION"} : ${path}`)
+            return Status.FAILED
+        }
+
     }
 
     remove(path: string): Promise<Status> {
@@ -67,7 +77,15 @@ export class ETHStorage implements Storage {
     }
 
     async setRef(path: string, sha: string): Promise<Status> {
-        await this.contract.setRef(Buffer.from(this.repoName), Buffer.from(path), '0x' + sha)
+        try {
+            let tx = await this.contract.setRef(Buffer.from(this.repoName), Buffer.from(path), '0x' + sha, { gasLimit: 6000000 })
+            await new Promise(r => setTimeout(r, 1000))
+            await tx.wait(1)
+        }
+        catch (error: any) {
+            console.error(`ref set failed ${error.reason ? error.reason : "CALL_EXCEPTION"} : ${path}`)
+            return Status.FAILED
+        }
         return Status.SUCCEED
     }
 

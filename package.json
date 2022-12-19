@@ -1,7 +1,6 @@
 {
   "name": "git3-cli",
   "version": "1.0.0",
-  "type": "module",
   "bin": "dist/index.js",
   "pkg": {
     "targets": [

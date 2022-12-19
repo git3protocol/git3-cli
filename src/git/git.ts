@@ -56,6 +56,7 @@ class Git {
 
         let outLines: string[] = []
         // let remoteHead = null
+        let hasError = false
         for (let ref of refs) {
             if (!await this.storage.hasPermission(ref.dst)) {
                 return `error ${ref.dst} refusing to push to remote ${this.remoteUrl} (permission denied)` + "\n\n"
@@ -69,13 +70,18 @@ class Git {
                 this.refs.delete(ref.dst)
                 this.pushed.delete(ref.dst)
             } else {
-                outLines.push(await this.push(ref.src, ref.dst) + "\n")
+                let out = await this.push(ref.src, ref.dst)
+                if (out.indexOf("error") >= 0) hasError = true
+                outLines.push(out + "\n")
             }
         }
-        if (this.refs.size == 0) {
+        if (this.refs.size == 0 && !hasError) {
             // first push
             let symbolicRef = GitUtils.symbolicRef("HEAD")
-            await this.wirteRef(symbolicRef, "HEAD", true)
+            let err = await this.wirteRef(symbolicRef, "HEAD", true)
+            if (err) {
+                return `error HEAD ${err}`
+            }
         }
         return outLines.join("") + "\n\n"
 
@@ -139,7 +145,12 @@ class Git {
         for (let obj of objects) {
             pendings.push(this.putObject(obj))
         }
-        await Promise.all(pendings)
+        let resaults = await Promise.all(pendings)
+        for (let res of resaults) {
+            if (res != Status.SUCCEED) {
+                return `error ${dst} upload obj file fail`
+            }
+        }
 
         let sha = GitUtils.refValue(src)
         let err = await this.wirteRef(sha, dst, force)

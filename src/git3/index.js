@@ -25,23 +25,23 @@ program.command('generate')
 
       const keyPath = process.env.HOME + "/.git3/keys"
       mkdirSync(keyPath, { recursive: true })
-  
+
       if (readdirSync(keyPath).includes(name)) {
         console.error(`wallet ${name} already exists`)
         return
       }
-  
+
       const mnemonic = bip39.generateMnemonic()
       const wallet = keyType === 'private key'
         ? ethers.Wallet.createRandom()
         : ethers.Wallet.fromMnemonic(mnemonic)
-      
+
       const content = `${walletType}\n${keyType === 'private key' ? wallet.privateKey : mnemonic}\n`
       writeFileSync(`${keyPath}/${name}`, content)
       return
-     })
+    })
   })
-  
+
 program.command('list', { isDefault: true })
   .alias('ls')
   .description('list all wallets in user folder ~/.git3/keys')
@@ -86,17 +86,17 @@ program.command('import')
       const walletType = keyType === 'private key' ? 'privateKey' : 'mnemonic'
       const keyPath = process.env.HOME + "/.git3/keys"
       mkdirSync(keyPath, { recursive: true })
-  
+
       if (readdirSync(keyPath).includes(name)) {
         console.error(`wallet ${name} already exists`)
         return
       }
-  
+
       const content = `${walletType}\n${key}\n`
       writeFileSync(`${keyPath}/${name}`, content)
       return
+    })
   })
-})
 
 program.command('delete')
   .description('delete a wallet')
@@ -141,13 +141,13 @@ program.command('create')
       : ethers.Wallet.fromMnemonic(key)
 
     etherWallet = etherWallet.connect(provider)
-    let net= network[3334]
+    let net = network[3334]
     const contract = new ethers.Contract(
       net.contracts.git3,
       abis.ETHStorage,
       etherWallet, {
-        gasLimit: 10000000000
-      })
+      gasLimit: 10000000000
+    })
 
 
     contract.repoNameToOwner(Buffer.from(repo))
@@ -166,7 +166,7 @@ program.command('info')
 
     const keyPath = process.env.HOME + "/.git3/keys"
     mkdirSync(keyPath, { recursive: true })
-    
+
     const content = readFileSync(`${keyPath}/${wallet}`).toString()
     const [walletType, key] = content.split('\n')
     const provider = new ethers.providers.JsonRpcProvider('https://galileo.web3q.io:8545');
@@ -201,8 +201,8 @@ program.command('set-wallet')
     const existingRemote = currentConfig[`remote "${git3}"`]
     const keyPath = process.env.HOME + "/.git3/keys"
     mkdirSync(keyPath, { recursive: true })
-    
-    if(!existsSync(`${keyPath}/${wallet}`)) {
+
+    if (!existsSync(`${keyPath}/${wallet}`)) {
       console.error(`wallet ${wallet} not found, use <git3 new> to generate one`)
       return
     }
