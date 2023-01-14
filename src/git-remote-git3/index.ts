@@ -1,12 +1,11 @@
 
-import GitRemoteHelper from './git/git-remote-helper'
-import { ApiBaseParams } from './git/git-remote-helper'
-import Git from './git/git'
-// import { log } from './git/log'
-import { ETHStorage } from './storage/ETHStorage'
+import GitRemoteHelper from './git-remote-helper.js'
+import { ApiBaseParams } from './git-remote-helper.js'
+import Git from './git.js'
+import { ETHStorage } from '../storage/ETHStorage.js'
 
-import nameServices from './config/name-services'
-
+import nameServices from '../config/name-services.js'
+// https://gist.github.com/sindresorhus/a39789f98801d908bbc7ff3ecc99d99c
 let git: Git;
 GitRemoteHelper({
     env: process.env,

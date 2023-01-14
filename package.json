@@ -1,17 +1,12 @@
 {
   "name": "git3-cli",
   "version": "1.0.0",
-  "bin": "dist/index.js",
-  "pkg": {
-    "targets": [
-      "node18-macos-arm64",
-      "node18-macos-x64",
-      "node18-linux-x64",
-      "node18-win-x64"
-    ],
-    "outputPath": "bin"
-  },
   "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=14.16"
+  },
+  "bin": "dist/git3/index.js",
   "dependencies": {
     "@ethersproject/experimental": "^5.7.0",
     "bip39": "^3.0.4",
@@ -31,21 +26,25 @@
     "superpathjoin": "^2.0.1"
   },
   "scripts": {
-    "build": "yarn clean && tsc",
-    "install-linux": "yarn pkg:linux && cp ./bin/index /usr/local/bin/git-remote-git3",
-    "install-mac": "yarn pkg && cp ./bin/index-macos-x64 /usr/local/bin/git-remote-git3",
-    "install-mac-arm": "yarn pkg && cp ./bin/index-macos-arm64 /usr/local/bin/git-remote-git3",
-    "pkg:linux": "yarn build && pkg ./dist/index.js --out-path bin/ --targets node18-linux-x64",
-    "pkg": "yarn build && pkg ./dist/index.js --out-path bin/ --targets node18-macos-x64,node18-macos-arm64,node18-linux-x64,node18-win-x64",
-    "build:git3": "esbuild ./src/git3/index.js --bundle --platform=node --target=es6 --outfile=dist/git3.js",
-    "pkg:git3": "yarn build:git3 && pkg dist/git3.js --output bin/git3 && cp bin/git3 /usr/local/bin/git3",
-    "clean": "rm -rf ./dist ./bin"
+    "clean": "rm -rf ./dist ./bin",
+    "build:git3": "esbuild src/git3/index.ts --bundle --platform=node --outfile=dist/git3.cjs --format=cjs",
+    "build:git-remote": "esbuild src/git-remote-git3/index.ts --bundle --platform=node --outfile=dist/git-remote-git3.cjs --format=cjs",
+    "build": "yarn clean && yarn build:git3 & yarn build:git-remote & wait",
+    "pkg:git3": "pkg dist/git3.cjs -c git3.pkg.json",
+    "pkg:git-remote": "pkg dist/git-remote-git3.cjs -c git-remote-git3.pkg.json",
+    "pkg:all": "yarn pkg:git3 && yarn pkg:git-remote",
+    "pkg": "yarn build && yarn pkg:all",
+    "install-mac": "yarn pkg && cp bin/git3-macos /usr/local/bin/git3 && cp bin/git-remote-git3-macos /usr/local/bin/git-remote-git3",
+    "install-linux": "yarn pkg && cp bin/git3-linux /usr/local/bin/git3 && cp bin/git-remote-git3-linux /usr/local/bin/git-remote-git3"
   },
   "devDependencies": {
-    "esbuild": "^0.16.4",
     "@types/buffer-split": "^1.0.0",
     "@types/debug": "^4.1.7",
+    "@types/inquirer": "^9.0.3",
     "@types/node": "^18.11.10",
+    "@types/parse-git-config": "^3.0.1",
+    "esbuild": "^0.17.0",
+    "pkg": "^5.8.0",
     "ts-node": "^10.9.1",
     "typescript": "^4.9.3"
   }

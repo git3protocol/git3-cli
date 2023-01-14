@@ -1,8 +1,8 @@
-import { log } from './log'
+import { log } from './log.js'
 import { superpathjoin as join } from 'superpathjoin'
-import { ApiBaseParams } from './git-remote-helper'
-import { Ref, Status, Storage } from '../storage/storage'
-import { GitUtils } from './git-utils'
+import { ApiBaseParams } from './git-remote-helper.js'
+import { Ref, Status, Storage } from '../storage/storage.js'
+import { GitUtils } from './git-utils.js'
 class Git {
     gitdir: string
     remoteName: string

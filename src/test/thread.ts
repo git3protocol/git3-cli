@@ -1,4 +1,4 @@
-import { ETHStorage } from "../storage/ETHStorage";
+import { ETHStorage } from "../storage/ETHStorage.js";
 
 
 let es = new ETHStorage("test123", 3334, { git3Address: null, sender: null })

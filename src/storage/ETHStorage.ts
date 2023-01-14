@@ -1,9 +1,9 @@
-import { Ref, Status, Storage } from "./storage"
-import { getWallet } from "../wallet/index"
+import { Ref, Status, Storage } from "./storage.js"
+import { getWallet } from "../wallet/index.js"
 import { ethers, Signer } from "ethers"
 import { NonceManager } from "@ethersproject/experimental"
-import abis from "../config/abis"
-import network from "../config/evm-network"
+import abis from "../config/abis.js"
+import network from "../config/evm-network.js"
 export class ETHStorage implements Storage {
     repoName: string
     wallet: Signer

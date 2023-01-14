@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs'
 import pathUtil from 'path'
-import { Ref, Status, Storage } from "./storage"
+import { Ref, Status, Storage } from "./storage.js"
 import { superpathjoin as join } from 'superpathjoin'
 const mockPath = process.env.HOME + "/.git3/mock"
 fs.mkdir(mockPath, { recursive: true })

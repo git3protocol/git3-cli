@@ -5,8 +5,8 @@ import bip39 from 'bip39'
 import inquirer from 'inquirer'
 import parse from 'parse-git-config'
 import { importActions, generateActions } from './actions.js'
-import abis from "../config/abis"
-import network from "../config/evm-network"
+import abis from "../config/abis.js"
+import network from "../config/evm-network.js"
 const program = new Command()
 
 program
@@ -145,17 +145,15 @@ program.command('create')
     const contract = new ethers.Contract(
       net.contracts.git3,
       abis.ETHStorage,
-      etherWallet, {
-      gasLimit: 10000000000
-    })
+      etherWallet)
 
 
     contract.repoNameToOwner(Buffer.from(repo))
-      .then(res => { console.log(res) })
-      .catch(err => { console.error(err) })
+      .then((res: any) => { console.log(res) })
+      .catch((err: any) => { console.error(err) })
     contract.createRepo(Buffer.from(repo))
-      .then(res => { console.log(res) })
-      .catch(err => { console.error(err) })
+      .then((res: any) => { console.log(res) })
+      .catch((err: any) => { console.error(err) })
 
   })
 
@@ -225,8 +223,8 @@ program.command('set-wallet')
           newConfigText += `\t${subKey} = ${newConfig[key][subKey]}\n`
         })
       })
-
-      writeFileSync(parse.resolve(), newConfigText)
+      let path = parse.resolveConfigPath("global") || ""
+      writeFileSync(path, newConfigText)
     } else {
       console.error(`remote ${git3} not found`)
       console.error('you can add a remote with `git remote add <name> <url>')
