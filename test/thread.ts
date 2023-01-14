@@ -1,4 +1,5 @@
-import { ETHStorage } from "../storage/ETHStorage.js";
+import { ETHStorage } from "../src/storage/ETHStorage.js";
+import { Status } from "../src/storage/storage.js";
 
 
 let es = new ETHStorage("test123", 3334, { git3Address: null, sender: null })
@@ -8,7 +9,7 @@ let main = async () => {
     ))
     console.log(data.length)
     // return
-    let pending = []
+    let pending :Promise<Status>[] = []
     for (let i = 0; i < 20; i++) {
         pending.push(es.upload(`bbb-${i}`, data))
     }
