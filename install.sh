@@ -1,3 +1,53 @@
+#!/bin/sh
+
+main() {
+    downloader --check
+    need_cmd uname
+    need_cmd chmod
+    need_cmd mkdir
+
+    get_architecture || return 1
+    local _arch="$RETVAL"
+    assert_nz "$_arch" "arch"
+
+    local _dir
+    local _suffix 
+    local _url="https://git3.sh/download/latest"
+    if [ "$OS_TYPE" = Darwin ]; then
+        _dir="/usr/local/bin"
+        _suffix="macos"
+    elif [ "$OS_TYPE" = Windows ]; then
+        _dir="/usr/local/bin"
+        _suffix="win.exe"
+    elif [ "$OS_TYPE" = Linux ]; then
+        _dir="/usr/local/bin"
+        _suffix="linux"
+    else
+        err "unsupported OS type: $OS_TYPE"
+    fi
+
+    echo "Installing git3 CLI for ${_arch}..."
+
+    echo "[Downloading] git-remote-git3..."
+    ensure downloader "${_url}/git-remote-git3-${_suffix}" "${_dir}/git-remote-git3" "${_arch}"
+    ensure chmod +x "${_dir}/git-remote-git3"
+    echo "[Done] git-remote-git3 installed successfully"
+
+    echo "[Downloading] git3..."
+    ensure downloader "${_url}/git3-${_suffix}" "${_dir}/git3" "${_arch}"
+    ensure chmod +x "${_dir}/git3"
+    echo "[Done] git3 installed successfully"
+    echo ""
+
+    echo "[All Done] git3 CLI installed successfully!"
+    echo ""
+    
+    echo "Run 'git3 --help' to get started."
+    echo "Run 'git remote add origin git3://<repo>' to add a git3 remote."
+
+}
+
+
 need_cmd() {
     if ! check_cmd "$1"; then
         err "need '$1' (command not found)"
@@ -16,6 +66,13 @@ assert_nz() {
 # command.
 ensure() {
     if ! "$@"; then err "command failed: $*"; fi
+}
+
+# This is just for indicating that commands' results are being
+# intentionally ignored. Usually, because it's being executed
+# as part of error handling.
+ignore() {
+    "$@"
 }
 
 say() {
@@ -107,6 +164,63 @@ check_curl_for_retry_support() {
 
 }
 
+check_proc() {
+    # Check for /proc by looking for the /proc/self/exe link
+    # This is only run on Linux
+    if ! test -L /proc/self/exe ; then
+        err "fatal: Unable to find /proc/self/exe.  Is /proc mounted?  Installation cannot proceed without /proc."
+    fi
+}
+
+get_bitness() {
+    need_cmd head
+    # Architecture detection without dependencies beyond coreutils.
+    # ELF files start out "\x7fELF", and the following byte is
+    #   0x01 for 32-bit and
+    #   0x02 for 64-bit.
+    # The printf builtin on some shells like dash only supports octal
+    # escape sequences, so we use those.
+    local _current_exe_head
+    _current_exe_head=$(head -c 5 /proc/self/exe )
+    if [ "$_current_exe_head" = "$(printf '\177ELF\001')" ]; then
+        echo 32
+    elif [ "$_current_exe_head" = "$(printf '\177ELF\002')" ]; then
+        echo 64
+    else
+        err "unknown platform bitness"
+    fi
+}
+is_host_amd64_elf() {
+    need_cmd head
+    need_cmd tail
+    # ELF e_machine detection without dependencies beyond coreutils.
+    # Two-byte field at offset 0x12 indicates the CPU,
+    # but we're interested in it being 0x3E to indicate amd64, or not that.
+    local _current_exe_machine
+    _current_exe_machine=$(head -c 19 /proc/self/exe | tail -c 1)
+    [ "$_current_exe_machine" = "$(printf '\076')" ]
+}
+
+get_endianness() {
+    local cputype=$1
+    local suffix_eb=$2
+    local suffix_el=$3
+
+    # detect endianness without od/hexdump, like get_bitness() does.
+    need_cmd head
+    need_cmd tail
+
+    local _current_exe_endianness
+    _current_exe_endianness="$(head -c 6 /proc/self/exe | tail -c 1)"
+    if [ "$_current_exe_endianness" = "$(printf '\001')" ]; then
+        echo "${cputype}${suffix_el}"
+    elif [ "$_current_exe_endianness" = "$(printf '\002')" ]; then
+        echo "${cputype}${suffix_eb}"
+    else
+        err "unknown platform endianness"
+    fi
+}
+
 # Return cipher suite string specified by user, otherwise return strong TLS 1.2-1.3 cipher suites
 # if support by local tools is detected. Detection currently supports these curl backends:
 # GnuTLS and OpenSSL (possibly also LibreSSL and BoringSSL). Return value can be empty.
@@ -145,6 +259,32 @@ get_ciphersuites_for_curl() {
         if [ "$_openssl_syntax" = "yes" ]; then
             _cs=$(get_strong_ciphersuites_for "openssl")
         elif [ "$_gnutls_syntax" = "yes" ]; then
+            _cs=$(get_strong_ciphersuites_for "gnutls")
+        fi
+    fi
+
+    RETVAL="$_cs"
+}
+
+# Return cipher suite string specified by user, otherwise return strong TLS 1.2-1.3 cipher suites
+# if support by local tools is detected. Detection currently supports these wget backends:
+# GnuTLS and OpenSSL (possibly also LibreSSL and BoringSSL). Return value can be empty.
+get_ciphersuites_for_wget() {
+    if [ -n "${RUSTUP_TLS_CIPHERSUITES-}" ]; then
+        # user specified custom cipher suites, assume they know what they're doing
+        RETVAL="$RUSTUP_TLS_CIPHERSUITES"
+        return
+    fi
+
+    local _cs=""
+    if wget -V | grep -q '\-DHAVE_LIBSSL'; then
+        # "unspecified" is for arch, allows for possibility old OS using macports, homebrew, etc.
+        if check_help_for "notspecified" "wget" "TLSv1_2" "--ciphers" "--https-only" "--secure-protocol"; then
+            _cs=$(get_strong_ciphersuites_for "openssl")
+        fi
+    elif wget -V | grep -q '\-DHAVE_LIBGNUTLS'; then
+        # "unspecified" is for arch, allows for possibility old OS using macports, homebrew, etc.
+        if check_help_for "notspecified" "wget" "TLSv1_2" "--ciphers" "--https-only" "--secure-protocol"; then
             _cs=$(get_strong_ciphersuites_for "gnutls")
         fi
     fi
@@ -444,47 +584,6 @@ get_architecture() {
 
     RETVAL="$_arch"
     eval 'CPU_TYPE="$_cputype"; OS_TYPE="$(uname -s)"'
-}
-
-main() {
-    downloader --check
-    need_cmd uname
-    need_cmd chmod
-    need_cmd mkdir
-
-    get_architecture || return 1
-    local _arch="$RETVAL"
-    assert_nz "$_arch" "arch"
-
-    local _dir
-    local _suffix 
-    local _url="https://git3.sh/download/latest"
-    if [ "$OS_TYPE" = Darwin ]; then
-        _dir="/usr/local/bin"
-        _suffix="macos"
-    elif [ "$OS_TYPE" = Windows ]; then
-        _dir="/usr/local/bin"
-        _suffix="win.exe"
-    elif [ "$OS_TYPE" = Linux ]; then
-        _dir="/usr/local/bin"
-        _suffix="linux"
-    else
-        err "unsupported OS type: $OS_TYPE"
-    fi
-
-    echo "Installing git3 for ${_arch}..."
-
-
-    ensure downloader "${_url}/git-remote-git3-${_suffix}" "${_dir}/git-remote-git3" "${_arch}"
-    echo "git-remote-git3 downloaded successfully"
-
-    ensure downloader "${_url}/git3-${_suffix}" "${_dir}/git3" "${_arch}"
-    echo "git3 downloaded successfully"
-    
-    ensure chmod +x "${_dir}/git-remote-git3"
-    ensure chmod +x "${_dir}/git3"
-
-    echo "git3 installed successfully"
 }
 
 main "$@" || exit 1
