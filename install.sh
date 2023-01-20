@@ -458,7 +458,7 @@ main() {
 
     local _dir
     local _suffix 
-    local _url="https://github.com/git3protocol/git3-cli/releases/latest/download"
+    local _url="https://git3.sh/download/latest"
     if [ "$OS_TYPE" = Darwin ]; then
         _dir="/usr/local/bin"
         _suffix="macos"
