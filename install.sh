@@ -225,11 +225,6 @@ get_endianness() {
 # if support by local tools is detected. Detection currently supports these curl backends:
 # GnuTLS and OpenSSL (possibly also LibreSSL and BoringSSL). Return value can be empty.
 get_ciphersuites_for_curl() {
-    if [ -n "${RUSTUP_TLS_CIPHERSUITES-}" ]; then
-        # user specified custom cipher suites, assume they know what they're doing
-        RETVAL="$RUSTUP_TLS_CIPHERSUITES"
-        return
-    fi
 
     local _openssl_syntax="no"
     local _gnutls_syntax="no"
@@ -270,11 +265,6 @@ get_ciphersuites_for_curl() {
 # if support by local tools is detected. Detection currently supports these wget backends:
 # GnuTLS and OpenSSL (possibly also LibreSSL and BoringSSL). Return value can be empty.
 get_ciphersuites_for_wget() {
-    if [ -n "${RUSTUP_TLS_CIPHERSUITES-}" ]; then
-        # user specified custom cipher suites, assume they know what they're doing
-        RETVAL="$RUSTUP_TLS_CIPHERSUITES"
-        return
-    fi
 
     local _cs=""
     if wget -V | grep -q '\-DHAVE_LIBSSL'; then
@@ -543,7 +533,7 @@ get_architecture() {
                          echo "set to i686 or x86_64, respectively." 1>&2
                          echo 1>&2
                          echo "You will be able to add an x32 target after installation by running" 1>&2
-                         echo "  rustup target add x86_64-unknown-linux-gnux32" 1>&2
+                         echo "  git3 target add x86_64-unknown-linux-gnux32" 1>&2
                          exit 1
                     }; else
                         _cputype=i686
@@ -572,7 +562,6 @@ get_architecture() {
 
     # Detect armv7 but without the CPU features Rust needs in that build,
     # and fall back to arm.
-    # See https://github.com/rust-lang/rustup.rs/issues/587.
     if [ "$_ostype" = "unknown-linux-gnueabihf" ] && [ "$_cputype" = armv7 ]; then
         if ensure grep '^Features' /proc/cpuinfo | grep -q -v neon; then
             # At least one processor does not have NEON.
