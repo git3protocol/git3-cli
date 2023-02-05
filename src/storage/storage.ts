@@ -1,4 +1,3 @@
-
 export enum Status {
     SUCCEED = "SUCCEED",
     TIMEOUT = "TIMEOUT",
@@ -8,7 +7,6 @@ export enum Status {
 export type Ref = {
     ref: string
     sha: string
-
 }
 
 export interface Storage {
@@ -21,5 +19,4 @@ export interface Storage {
     listRefs(): Promise<Ref[]>
     setRef(path: string, sha: string): Promise<Status>
     removeRef(path: string): Promise<Status>
-
 }

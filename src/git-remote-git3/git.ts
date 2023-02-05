@@ -1,8 +1,8 @@
-import { log } from './log.js'
-import { superpathjoin as join } from 'superpathjoin'
-import { ApiBaseParams } from './git-remote-helper.js'
-import { Ref, Status, Storage } from '../storage/storage.js'
-import { GitUtils } from './git-utils.js'
+import { log } from "./log.js"
+import { superpathjoin as join } from "superpathjoin"
+import { ApiBaseParams } from "./git-remote-helper.js"
+import { Ref, Status, Storage } from "../storage/storage.js"
+import { GitUtils } from "./git-utils.js"
 class Git {
     gitdir: string
     remoteName: string
@@ -11,7 +11,6 @@ class Git {
     refs: Map<string, string> = new Map()
     pushed: Map<string, string> = new Map()
     head: string | null
-
 
     constructor(info: ApiBaseParams, storage: Storage) {
         this.gitdir = info.gitdir
@@ -30,40 +29,45 @@ class Git {
             if (ref.ref == "HEAD") {
                 if (!forPush) outLines.push(`@${ref.sha} HEAD\n`)
                 this.head = ref.sha
-            }
-            else {
+            } else {
                 outLines.push(`${ref.sha} ${ref.ref}\n`)
                 this.refs.set(ref.ref, ref.sha)
             }
-
         }
 
         return outLines.join("") + "\n"
     }
 
-    async doFetch(refs: { ref: string, oid: string }[]) {
+    async doFetch(refs: { ref: string; oid: string }[]) {
         for (let ref of refs) {
             await this.fetch(ref.oid)
         }
         return "\n\n"
     }
 
-    async doPush(refs: {
-        src: string
-        dst: string
-        force: boolean
-    }[]): Promise<string> {
-
+    async doPush(
+        refs: {
+            src: string
+            dst: string
+            force: boolean
+        }[]
+    ): Promise<string> {
         let outLines: string[] = []
         // let remoteHead = null
         let hasError = false
         for (let ref of refs) {
-            if (!await this.storage.hasPermission(ref.dst)) {
-                return `error ${ref.dst} refusing to push to remote ${this.remoteUrl} (permission denied)` + "\n\n"
+            if (!(await this.storage.hasPermission(ref.dst))) {
+                return (
+                    `error ${ref.dst} refusing to push to remote ${this.remoteUrl} (permission denied)` +
+                    "\n\n"
+                )
             }
             if (ref.src == "") {
                 if (this.refs.get("HEAD") == ref.dst) {
-                    return `error ${ref.dst} refusing to delete the current branch: ${ref.dst}` + "\n\n"
+                    return (
+                        `error ${ref.dst} refusing to delete the current branch: ${ref.dst}` +
+                        "\n\n"
+                    )
                 }
                 log("deleting ref", ref.dst)
                 this.storage.removeRef(ref.dst)
@@ -84,7 +88,6 @@ class Git {
             }
         }
         return outLines.join("") + "\n\n"
-
     }
 
     async fetch(oid: string) {
@@ -98,12 +101,10 @@ class Git {
                 for (let sha of GitUtils.referencedObjects(oid)) {
                     fetching.push(this.fetch(sha))
                 }
-            }
-            else {
+            } else {
                 log("already downloaded", oid)
             }
-        }
-        else {
+        } else {
             let error = await this.download(oid)
             if (!error) {
                 for (let sha of GitUtils.referencedObjects(oid)) {
@@ -112,7 +113,6 @@ class Git {
             } else {
                 fetching.push(this.fetch(oid))
             }
-
         }
         await Promise.all(fetching)
     }
@@ -125,8 +125,7 @@ class Git {
             if (computedSha != sha) {
                 return new Error(`sha mismatch ${computedSha} != ${sha}`)
             }
-        }
-        else {
+        } else {
             return new Error(`download failed ${sha}`)
         }
         return null
@@ -162,7 +161,11 @@ class Git {
         }
     }
 
-    async wirteRef(newSha: string, dst: string, force: boolean): Promise<string | null> {
+    async wirteRef(
+        newSha: string,
+        dst: string,
+        force: boolean
+    ): Promise<string | null> {
         let sha = this.refs.get(dst)
         if (sha) {
             if (!GitUtils.objectExists(sha)) {
@@ -175,26 +178,25 @@ class Git {
         }
         let status
         if (dst == "HEAD") {
-            status = await this.storage.setRef(`HEAD:${newSha}`, "0000000000000000000000000000000000001ead")
+            status = await this.storage.setRef(
+                `HEAD:${newSha}`,
+                "0000000000000000000000000000000000001ead"
+            )
         } else {
             status = await this.storage.setRef(dst, newSha)
         }
 
         if (status == Status.SUCCEED) {
             return null
+        } else {
+            return "set ref error"
         }
-        else {
-            return 'set ref error'
-        }
-
     }
 
     async putObject(sha: string): Promise<string> {
         let data = GitUtils.encodeObject(sha)
         let path = this.objectPath(sha)
-        log("writing...", path)
         let status = await this.storage.upload(path, data)
-        log("status", status)
         return status
     }
 
@@ -214,9 +216,6 @@ class Git {
         }
         return refs
     }
-
-
-
 }
 
 export default Git

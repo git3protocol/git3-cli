@@ -1,12 +1,12 @@
+import GitRemoteHelper from "./git-remote-helper.js"
+import { ApiBaseParams } from "./git-remote-helper.js"
+import Git from "./git.js"
+import { ETHStorage } from "../storage/ETHStorage.js"
 
-import GitRemoteHelper from './git-remote-helper.js'
-import { ApiBaseParams } from './git-remote-helper.js'
-import Git from './git.js'
-import { ETHStorage } from '../storage/ETHStorage.js'
-
-import nameServices from '../config/name-services.js'
+import nameServices from "../config/name-services.js"
+import { SLIStorage } from "../storage/SLIStorage.js"
 // https://gist.github.com/sindresorhus/a39789f98801d908bbc7ff3ecc99d99c
-let git: Git;
+let git: Git
 GitRemoteHelper({
     env: process.env,
     stdin: process.stdin,
@@ -16,7 +16,7 @@ GitRemoteHelper({
             const url = new URL(p.remoteUrl)
             let repoName
             let git3Address
-            let chainId = url.port ? parseInt(url.port) : 3334
+            let chainId = url.port ? parseInt(url.port) : null
             if (url.hostname.indexOf(".") < 0) {
                 if (url.hostname.startsWith("0x")) {
                     git3Address = url.hostname
@@ -24,10 +24,11 @@ GitRemoteHelper({
                 } else {
                     // use Default git3Address
                     git3Address = null
-                    repoName = url.hostname.startsWith("/") ? url.hostname.slice(1) : url.hostname
+                    repoName = url.hostname.startsWith("/")
+                        ? url.hostname.slice(1)
+                        : url.hostname
                 }
-            }
-            else {
+            } else {
                 let nsSuffix = url.hostname.split(".")[1] // Todo: support sub domain
                 let ns = nameServices[nsSuffix]
                 if (!ns) throw new Error("invalid name service")
@@ -37,8 +38,21 @@ GitRemoteHelper({
                 chainId = chainId || ns.chainId
                 repoName = url.pathname.slice(1)
             }
+            chainId = chainId || 3334
             let sender = url.username || null
-            let storage = new ETHStorage(repoName, chainId, { git3Address, sender })
+            let storage
+            if (chainId == 3334) {
+                storage = new ETHStorage(repoName, chainId, {
+                    git3Address,
+                    sender,
+                })
+            } else {
+                storage = new SLIStorage(repoName, chainId, {
+                    git3Address,
+                    sender,
+                })
+            }
+
             git = new Git(p, storage)
             return
         },
@@ -57,7 +71,7 @@ GitRemoteHelper({
             gitdir: string
             remoteName: string
             remoteUrl: string
-            refs: { ref: string, oid: string }[]
+            refs: { ref: string; oid: string }[]
         }) => {
             // log("fetch", p)
             let out = await git.doFetch(p.refs)
@@ -81,6 +95,6 @@ GitRemoteHelper({
         },
     },
 }).catch((error: any) => {
-    console.error("wtf");
-    console.error(error);
-});
+    console.error("wtf")
+    console.error(error)
+})
