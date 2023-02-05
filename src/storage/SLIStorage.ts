@@ -64,8 +64,7 @@ export class SLIStorage implements Storage {
             Buffer.from(this.repoName),
             Buffer.from(path)
         )
-        const buffer = Buffer.from(res[0].slice(2), "hex")
-        console.error("buffer", buffer, buffer.toString(), res[0])
+        const buffer = Buffer.from(res.slice(2), "hex")
         const cid = buffer.toString("utf8")
         for (let i = 0; i < ipfsConf.gateways.length; i++) {
             let gateway =
@@ -73,7 +72,9 @@ export class SLIStorage implements Storage {
                     Math.floor(Math.random() * ipfsConf.gateways.length)
                 ] //random get rpc
             try {
-                let response = await axios.get(gateway + cid)
+                let response = await axios.get(gateway + cid, {
+                    responseType: "arraybuffer",
+                })
                 if (response.status === 200) {
                     console.error(`=== download file ${path} succeed ===`)
                     return [Status.SUCCEED, Buffer.from(response.data)]

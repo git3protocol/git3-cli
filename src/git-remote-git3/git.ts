@@ -42,6 +42,7 @@ class Git {
         for (let ref of refs) {
             await this.fetch(ref.oid)
         }
+        log("done.")
         return "\n\n"
     }
 
