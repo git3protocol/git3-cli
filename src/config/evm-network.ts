@@ -25,6 +25,26 @@ const evmNetworks: Record<number, any> = {
         },
         contracts: { git3: "" },
     },
+    5: {
+        name: "Goerli",
+        rpc: ["https://eth-goerli.g.alchemy.com/v2/asrXwNuiK9my-cZJYZ_ooo4q-lDw8HLm"],
+        nativeCurrency: {
+            name: "Goerli Ether",
+            symbol: "ETH",
+            decimals: 18,
+        },
+        explorers: [
+            {
+                name: "etherscan-goerli",
+                url: "https://goerli.etherscan.io",
+                standard: "EIP3091",
+            },
+        ],
+        txConst: {
+            blockTimeSec: 15,
+        },
+        contracts: { git3: "0x80F4b977F9C1d21FF6fDDd56C3CA59eeD5745B58" },
+    },
     3334: {
         name: "Web3Q Galileo",
         nativeCurrency: {
@@ -41,7 +61,7 @@ const evmNetworks: Record<number, any> = {
             },
         ],
         txConst: {
-            blockTimeSec: 6,
+            blockTimeSec: 7,
         },
         contracts: { git3: "0x59ef6b2dbfE86CcAaD84E2d8e78177f528521Da9" },
     },
@@ -65,6 +85,7 @@ const evmNetworks: Record<number, any> = {
         ],
         txConst: {
             blockTimeSec: 30,
+            boardcastTimes: 5,
         },
         contracts: { git3: "0xF56A1dd941667911896B9B872AC79E56cfc6a3dB" },
     },

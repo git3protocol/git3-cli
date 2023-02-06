@@ -211,7 +211,7 @@ program
     .description("clear pending nonce")
     .argument("<uri>", "ex: default@git3.w3q")
     .argument("[num]", "number of pending nonce to clear", 1)
-    .action(async (uri,num) => {
+    .action(async (uri, num) => {
         if (!uri.startsWith("git3://")) {
             uri = "git3://" + uri
         }
@@ -224,6 +224,8 @@ program
         let nonce = await protocol.wallet.getTransactionCount()
         console.log(`current nonce: ${nonce}`)
         await txManager.clearPendingNonce(num)
+        nonce = await protocol.wallet.getTransactionCount()
+        console.log(`current nonce: ${nonce}`)
     })
 
 // Todo: set-wallet temporarily useless
