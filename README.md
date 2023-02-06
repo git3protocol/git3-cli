@@ -28,9 +28,8 @@ git3://[sender_wallet]@[hub_contract_address or NS]:[chain_id]/<repo_name>
 - <repo_name> Required, your repo name
 
 ## Example:
-- `git3://helloworld`  
-select `default` wallet, `git3 official hub contract` address, on ETHStorage chainId: 3334, repo name is `helloworld`
-It's equl to `git3://default@git3.w3q:3334/helloworld`
+- `git3://helloworld@git3.fvm/helloworld`  
+select `default` wallet, `git3 official hub contract` address, on FVM chainId: 3141, repo name is `helloworld`
 
 - `git3://myname.eth@git3hub.eth/helloworld`  
 select `myname.eth` wallet, `git3hub.eth` hub contract address, on ETH Mainnet chainId: 1, repo name is `helloworld`

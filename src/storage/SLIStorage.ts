@@ -1,49 +1,35 @@
 import { Ref, Status, Storage } from "./storage.js"
-import { getWallet } from "../wallet/index.js"
-import { TxManager } from "../wallet/tx-manager.js"
-import { ethers, Signer } from "ethers"
-import { NonceManager } from "@ethersproject/experimental"
-import abis from "../config/abis.js"
-import network from "../config/evm-network.js"
+import { TxManager } from "../common/tx-manager.js"
+import { ethers } from "ethers"
 import ipfsConf from "../config/ipfs.js"
 import axios from "axios"
+import { Git3Protocol } from "../common/git3-protocol.js"
 
 export class SLIStorage implements Storage {
     repoName: string
-    wallet: Signer
+    wallet: ethers.Wallet
     contract: ethers.Contract
-    provider: ethers.providers.JsonRpcProvider
-    auth: string
-
     txManager: TxManager
 
-    constructor(
-        repoName: string,
-        chainId: number,
-        options: { git3Address: string | null; sender: string | null }
-    ) {
-        let net = network[chainId]
-        if (!net) throw new Error("chainId not supported")
+    auth: string
 
-        this.repoName = repoName
-        this.wallet = getWallet(options.sender)
-
-        let rpc = net.rpc[Math.floor(Math.random() * net.rpc.length)] //random get rpc
-
-        this.provider = new ethers.providers.JsonRpcProvider(rpc)
-        this.wallet = this.wallet.connect(this.provider)
-        // this.wallet = new NonceManager(this.wallet)
-
-        let repoAddress = options.git3Address || net.contracts.git3
-        this.contract = new ethers.Contract(
-            repoAddress,
-            abis.SLIStorage,
-            this.wallet
+    constructor(protocol: Git3Protocol) {
+        this.repoName = protocol.repoName
+        this.contract = protocol.contract
+        this.wallet = protocol.wallet
+        this.txManager = new TxManager(
+            this.contract,
+            protocol.chainId,
+            protocol.netConfig.txConst
         )
         this.auth =
             "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweGFEQTdCOWFlQTdGNTc2ZDI5NzM0ZWUxY0Q2ODVFMzc2OWNCM2QwRDEiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTY3NTQ5NDYwMDkzMiwibmFtZSI6ImZ2bS1oYWNrc29uIn0.YBqfsj_LTZSJPKc0OH586avnQNqove_Htzl5rrToXTk"
 
-        this.txManager = new TxManager(this.contract, chainId, net.txConst)
+        this.txManager = new TxManager(
+            this.contract,
+            protocol.chainId,
+            protocol.netConfig.txConst
+        )
     }
 
     async repoRoles(): Promise<string[]> {
@@ -98,7 +84,7 @@ export class SLIStorage implements Storage {
                 Buffer.from(path),
                 Buffer.from(cid),
             ])
-            console.error(`=== upload ${path} ${cid} succeed ===`)
+            console.error(`=== upload ${path} ${cid.slice(0, 6)} succeed ===`)
 
             return Status.SUCCEED
         } catch (error: any) {
@@ -150,9 +136,10 @@ export class SLIStorage implements Storage {
     }
 
     async storeIPFS(data: Buffer): Promise<string> {
+        const RETRY_TIMES = 10
+        const TIMEOUT = 30
         let response
-        for (let i = 0; i < 10; i++) {
-            // Todo: add timeout
+        for (let i = 0; i < RETRY_TIMES; i++) {
             try {
                 response = await axios.post(
                     "https://api.nft.storage/upload",
@@ -162,6 +149,7 @@ export class SLIStorage implements Storage {
                             "Content-Type": "application/octet-stream",
                             Authorization: this.auth,
                         },
+                        timeout: TIMEOUT * 1000,
                     }
                 )
                 if (response.status == 200) {

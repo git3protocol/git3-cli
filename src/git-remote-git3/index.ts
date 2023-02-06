@@ -1,10 +1,7 @@
 import GitRemoteHelper from "./git-remote-helper.js"
 import { ApiBaseParams } from "./git-remote-helper.js"
 import Git from "./git.js"
-import { ETHStorage } from "../storage/ETHStorage.js"
-
-import nameServices from "../config/name-services.js"
-import { SLIStorage } from "../storage/SLIStorage.js"
+import { parseGit3URI } from "../common/git3-protocol.js"
 // https://gist.github.com/sindresorhus/a39789f98801d908bbc7ff3ecc99d99c
 let git: Git
 GitRemoteHelper({
@@ -13,46 +10,8 @@ GitRemoteHelper({
     stdout: process.stdout,
     api: {
         init: async (p: ApiBaseParams) => {
-            const url = new URL(p.remoteUrl)
-            let repoName
-            let git3Address
-            let chainId = url.port ? parseInt(url.port) : null
-            if (url.hostname.indexOf(".") < 0) {
-                if (url.hostname.startsWith("0x")) {
-                    git3Address = url.hostname
-                    repoName = url.pathname.slice(1)
-                } else {
-                    // use Default git3Address
-                    git3Address = null
-                    repoName = url.hostname.startsWith("/")
-                        ? url.hostname.slice(1)
-                        : url.hostname
-                }
-            } else {
-                let nsSuffix = url.hostname.split(".")[1] // Todo: support sub domain
-                let ns = nameServices[nsSuffix]
-                if (!ns) throw new Error("invalid name service")
-                // Todo: resolve name service
-                git3Address = null // ns parse address
-
-                chainId = chainId || ns.chainId
-                repoName = url.pathname.slice(1)
-            }
-            chainId = chainId || 3334
-            let sender = url.username || null
-            let storage
-            if (chainId == 3334) {
-                storage = new ETHStorage(repoName, chainId, {
-                    git3Address,
-                    sender,
-                })
-            } else {
-                storage = new SLIStorage(repoName, chainId, {
-                    git3Address,
-                    sender,
-                })
-            }
-
+            const protocol = parseGit3URI(p.remoteUrl)
+            const storage = new protocol.storageClass(protocol)
             git = new Git(p, storage)
             return
         },

@@ -11,16 +11,18 @@ export class TxManager {
     gasLimitRatio: number
     minNonce: number = -1
     queueCurrNonce: number = -1
-    highestNonce: number = -1
     rbfTimes: number
     boardcastTimes: number
     waitDistance: number
     minRBFRatio: number
 
+    _initialPromise: Promise<number> | null = null
+    _deltaCount: number = 0
+
     constructor(
         contract: ethers.Contract,
         chainId: number,
-        constOptions: {
+        constOptions?: {
             blockTimeSec?: number
             gasLimitRatio?: number
             rbfTimes?: number
@@ -33,12 +35,12 @@ export class TxManager {
         this.contract = contract
         this.price = null
         this.cancel = false
-        this.blockTimeSec = constOptions.blockTimeSec || 3
-        this.gasLimitRatio = constOptions.gasLimitRatio || 1.2
-        this.rbfTimes = constOptions.rbfTimes || 3
-        this.boardcastTimes = constOptions.boardcastTimes || 3
-        this.waitDistance = constOptions.waitDistance || 10
-        this.minRBFRatio = constOptions.minRBFRatio || 1.3
+        this.blockTimeSec = constOptions?.blockTimeSec || 3
+        this.gasLimitRatio = constOptions?.gasLimitRatio || 1.2
+        this.rbfTimes = constOptions?.rbfTimes || 3
+        this.boardcastTimes = constOptions?.boardcastTimes || 3
+        this.waitDistance = constOptions?.waitDistance || 10
+        this.minRBFRatio = constOptions?.minRBFRatio || 1.3
     }
 
     async FreshBaseGas(): Promise<ethers.providers.FeeData | null> {
@@ -51,18 +53,50 @@ export class TxManager {
         // TODO: cancel all tx sended
     }
 
+    async clearPendingNonce(num: number = 1, rbfRatio: number = 1.5) {
+        const signer = this.contract.signer
+        let nonce = await this.getNonce()
+        this._deltaCount++
+        console.log("clearPendingNonce", nonce, num)
+        let price = await this.FreshBaseGas()
+        let txs = []
+        for (let i = 0; i < num; i++) {
+            let res = signer.sendTransaction({
+                to: await signer.getAddress(),
+                nonce: nonce + i,
+                gasLimit: 21000,
+                type: 2,
+                chainId: this.chainId,
+                maxFeePerGas: price!
+                    .maxFeePerGas!.mul((rbfRatio * 100) | 0)
+                    .div(100),
+                maxPriorityFeePerGas: price!
+                    .maxPriorityFeePerGas!.mul((rbfRatio * 100) | 0)
+                    .div(100),
+            })
+            txs.push(res)
+        }
+        await Promise.all(txs)
+    }
+
+    async getNonce(): Promise<number> {
+        if (!this._initialPromise) {
+            this._initialPromise =
+                this.contract.signer.getTransactionCount("pending")
+        }
+        const deltaCount = this._deltaCount
+        this._deltaCount++
+        return this._initialPromise.then((initial) => initial + deltaCount)
+    }
+
     async SendCall(_method: string, _args: any[]): Promise<any> {
+        const nonce = await this.getNonce()
+
         let unsignedTx = await this.contract.populateTransaction[_method](
             ..._args
         )
-        unsignedTx.chainId = this.chainId
-        if (this.highestNonce < 0) {
-            this.highestNonce = await this.contract.signer.getTransactionCount()
-        }
-        const nonce = this.highestNonce
         unsignedTx.nonce = nonce
-        this.highestNonce += 1
-
+        unsignedTx.chainId = this.chainId
         // estimateGas check
         let gasLimit = await this.contract.provider.estimateGas(unsignedTx)
         unsignedTx.gasLimit = gasLimit
@@ -148,6 +182,8 @@ export class TxManager {
                     )
                 } catch (e: Error | any) {
                     if (e.code == ethers.errors.NONCE_EXPIRED) {
+                        // ignore if tx already in mempool
+                    } else if (e.code == ethers.errors.SERVER_ERROR) {
                         // ignore if tx already in mempool
                     } else {
                         console.error(

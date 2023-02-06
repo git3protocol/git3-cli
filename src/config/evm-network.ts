@@ -2,7 +2,7 @@
 
 const evmNetworks: Record<number, any> = {
     1: {
-        name: "ethereum",
+        name: "Ethereum",
         nativeCurrency: {
             name: "Ether",
             symbol: "ETH",
