@@ -41,9 +41,11 @@ const evmNetworks: Record<number, any> = {
             },
         ],
         txConst: {
-            blockTimeSec: 15,
+            blockTimeSec: 12,
+            rbfTimes: 6,
+            boardcastTimes: 5,
         },
-        contracts: { git3: "0x80F4b977F9C1d21FF6fDDd56C3CA59eeD5745B58" },
+        contracts: { git3: "0x51bb7F23193b88696D25EAec7E3293a2C96e55Ee" },
     },
     3334: {
         name: "Web3Q Galileo",

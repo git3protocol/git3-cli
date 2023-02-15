@@ -19,4 +19,7 @@ export interface Storage {
     listRefs(): Promise<Ref[]>
     setRef(path: string, sha: string): Promise<Status>
     removeRef(path: string): Promise<Status>
+
+    // for batch upload
+    uploadCommit(): Promise<Status>
 }

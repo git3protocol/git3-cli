@@ -37,8 +37,8 @@ export class TxManager {
         this.cancel = false
         this.blockTimeSec = constOptions.blockTimeSec || 3
         this.gasLimitRatio = constOptions.gasLimitRatio || 1.2
-        this.rbfTimes = constOptions.rbfTimes || 3
-        this.boardcastTimes = constOptions.boardcastTimes || 3
+        this.rbfTimes = constOptions.rbfTimes || 5
+        this.boardcastTimes = constOptions.boardcastTimes || 5
         this.waitDistance = constOptions.waitDistance || 10
         this.minRBFRatio = constOptions.minRBFRatio || 1.3
     }
@@ -87,6 +87,7 @@ export class TxManager {
     }
 
     async SendCall(_method: string, _args: any[]): Promise<any> {
+        let lastError: any = null
         const nonce = await this.getNonce()
         if (this.queueCurrNonce < 0) this.queueCurrNonce = nonce
 
@@ -180,6 +181,7 @@ export class TxManager {
                     } else {
                         console.error("[tx-manager] sendTransaction", nonce, e.code, e.message)
                     }
+                    lastError = e
                     // console.error(
                     //     "[tx-manager] sendTransaction",
                     //     nonce,
@@ -239,6 +241,7 @@ export class TxManager {
                         return receipt
                     } catch (e) {
                         // ignore
+                        lastError = e
                     }
                 } else {
                     // send first time failed, wait 1s then try again
@@ -249,6 +252,6 @@ export class TxManager {
             rbfCount++
         }
 
-        throw new Error(`send tx failed: ${nonce}`)
+        throw new Error(`send tx failed: ${nonce} ${lastError}`)
     }
 }

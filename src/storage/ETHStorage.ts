@@ -13,17 +13,14 @@ export class ETHStorage implements Storage {
         this.repoName = protocol.repoName
         this.contract = protocol.contract
         this.wallet = protocol.wallet
-        this.txManager = new TxManager(
-            this.contract,
-            protocol.chainId,
-            protocol.netConfig.txConst
-        )
+        this.txManager = new TxManager(this.contract, protocol.chainId, protocol.netConfig.txConst)
+    }
+    async uploadCommit(): Promise<Status> {
+        return Promise.resolve(Status.SUCCEED)
     }
 
     async repoRoles(): Promise<string[]> {
-        let owner = await this.contract.repoNameToOwner(
-            Buffer.from(this.repoName)
-        )
+        let owner = await this.contract.repoNameToOwner(Buffer.from(this.repoName))
         if (owner === ethers.constants.AddressZero) return []
         return [owner]
     }
@@ -34,10 +31,7 @@ export class ETHStorage implements Storage {
     }
 
     async download(path: string): Promise<[Status, Buffer]> {
-        const res = await this.contract.download(
-            Buffer.from(this.repoName),
-            Buffer.from(path)
-        )
+        const res = await this.contract.download(Buffer.from(this.repoName), Buffer.from(path))
         const buffer = Buffer.from(res[0].slice(2), "hex")
         console.error(`=== download file ${path} succeed ===`)
         return [Status.SUCCEED, buffer]
@@ -66,9 +60,7 @@ export class ETHStorage implements Storage {
     }
 
     async listRefs(): Promise<Ref[]> {
-        const res: string[][] = await this.contract.listRefs(
-            Buffer.from(this.repoName)
-        )
+        const res: string[][] = await this.contract.listRefs(Buffer.from(this.repoName))
         let refs = res.map((i) => ({
             ref: Buffer.from(i[1].slice(2), "hex")
                 .toString("utf8")
@@ -96,10 +88,7 @@ export class ETHStorage implements Storage {
     }
 
     async removeRef(path: string): Promise<Status> {
-        await this.contract.delRef(
-            Buffer.from(this.repoName),
-            Buffer.from(path)
-        )
+        await this.contract.delRef(Buffer.from(this.repoName), Buffer.from(path))
         return Status.SUCCEED
     }
 }

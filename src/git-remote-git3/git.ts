@@ -145,6 +145,10 @@ class Git {
         for (let obj of objects) {
             pendings.push(this.putObject(obj))
         }
+        let resault = await this.storage.uploadCommit()
+        if(resault!= Status.SUCCEED){
+            return `error ${dst} upload commit fail`
+        }
         let resaults = await Promise.all(pendings)
         for (let res of resaults) {
             if (res != Status.SUCCEED) {
