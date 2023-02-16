@@ -252,6 +252,6 @@ export class TxManager {
             rbfCount++
         }
 
-        throw new Error(`send tx failed: ${nonce} ${lastError}`)
+        throw new Error(`send tx failed: ${nonce} cancel: ${this.cancel} err: ${lastError} `)
     }
 }
