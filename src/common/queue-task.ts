@@ -10,12 +10,8 @@ export class QueueTask {
     checkPointWait!: Promise<void>
     checkPointResolve: any
 
-    constructor({
-        maxRetry = 10,
-        queueInterval = 0,
-        maxPending = 0,
-        retryInterval = 0,
-    }) {
+    index: number = 0
+    constructor({ maxRetry = 10, queueInterval = 0, maxPending = 0, retryInterval = 0 }) {
         this.maxRetry = maxRetry
         this.queueInterval = queueInterval
         this.maxPending = maxPending
@@ -58,7 +54,12 @@ export class QueueTask {
     async run(func: Function, retry: number = this.maxRetry): Promise<any> {
         let lastError
         for (let i = 0; i < retry; i++) {
+            this.index++
+            let start = Date.now().valueOf()
+            console.error("wait-" + this.index)
             await this.tickThread()
+            console.log("run-" + this.index, Date.now().valueOf() - start, "ms")
+
             this.pending++
             try {
                 let res = await func()
@@ -69,7 +70,7 @@ export class QueueTask {
                 lastError = err
                 this.pending--
                 this.checkPointResolve(true)
-                new Promise((r) => setTimeout(r, this.retryInterval))
+                await new Promise((r) => setTimeout(r, this.retryInterval))
             }
         }
         if (lastError) throw lastError

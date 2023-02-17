@@ -193,7 +193,7 @@ export class SLIStorage implements Storage {
     async storeIPFS(data: Buffer): Promise<string> {
         const TIMEOUT = 30
         try {
-            let cid = this.storageTask.run(async () => {
+            let cid = await this.storageTask.run(async () => {
                 let response = await axios.post("https://api.nft.storage/upload", data, {
                     headers: {
                         "Content-Type": "application/octet-stream",
