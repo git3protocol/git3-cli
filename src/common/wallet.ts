@@ -12,9 +12,7 @@ export function getWallet(wallet: string | null = "default"): ethers.Wallet {
     const [walletType, key] = content.split("\n")
 
     let etherWallet =
-        walletType === "privateKey"
-            ? new ethers.Wallet(key)
-            : ethers.Wallet.fromMnemonic(key)
+        walletType === "privateKey" ? new ethers.Wallet(key) : ethers.Wallet.fromMnemonic(key)
 
     return etherWallet
 }
@@ -23,13 +21,13 @@ export function setupContract(
     provider: ethers.providers.JsonRpcProvider,
     hubAddress: string,
     abi: string,
-    wallet: ethers.Wallet
+    wallet: ethers.Wallet | null = null
 ): ethers.Contract {
-    
     let contract = new ethers.Contract(hubAddress, abi, provider)
-    wallet = wallet.connect(provider)
-    contract = contract.connect(wallet)
-
+    if (wallet) {
+        wallet = wallet.connect(provider)
+        contract = contract.connect(wallet)
+    }
     return contract
 }
 

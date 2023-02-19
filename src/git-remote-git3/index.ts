@@ -10,7 +10,7 @@ GitRemoteHelper({
     stdout: process.stdout,
     api: {
         init: async (p: ApiBaseParams) => {
-            const protocol = parseGit3URI(p.remoteUrl)
+            const protocol = await parseGit3URI(p.remoteUrl)
             const storage = new protocol.storageClass(protocol)
             git = new Git(p, storage)
             return

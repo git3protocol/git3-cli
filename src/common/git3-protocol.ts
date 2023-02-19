@@ -25,10 +25,10 @@ type Option = {
     skipRepoName: boolean
 }
 
-export function parseGit3URI(
+export async function parseGit3URI(
     uri: string,
     option: Option = { skipRepoName: false }
-): Git3Protocol {
+): Promise<Git3Protocol> {
     const url = new URL(uri)
     let sender = url.username || "default"
     let chainId = url.port ? parseInt(url.port) : null
@@ -37,8 +37,7 @@ export function parseGit3URI(
     let nsName, nsDomain, ns
     if (!hub) throw new Error("invalid git3 uri, no hub address")
     let repoName = url.pathname.slice(1)
-    if (!option.skipRepoName && !repoName)
-        throw new Error("invalid git3 uri, no repo name")
+    if (!option.skipRepoName && !repoName) throw new Error("invalid git3 uri, no repo name")
 
     if (hub.indexOf(".") < 0) {
         if (url.hostname.startsWith("0x")) {
@@ -51,8 +50,17 @@ export function parseGit3URI(
         ns = nameServices[nsDomain]
         if (!ns) throw new Error("invalid name service")
         chainId = chainId || ns.chainId
-        // Todo: resolve name service
-        // hubAddress = ns.resolver()
+        // Todo: temporary resolve name service
+
+        let resolverAddress = ns["resolver"]
+        let nsContract = setupContract(
+            new ethers.providers.JsonRpcProvider("https://goerli-rollup.arbitrum.io/rpc"),
+            resolverAddress,
+            abis.NameService
+        )
+        hubAddress = await nsContract.NameHub([nsName, nsDomain].join("."))
+        if (hubAddress == "0x0000000000000000000000000000000000000000")
+            throw new Error(`${nsName} not found`)
     }
 
     if (!chainId) throw new Error("invalid git3 uri, no chainId")

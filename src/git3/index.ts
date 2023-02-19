@@ -143,7 +143,7 @@ program
         if (!uri.startsWith("git3://")) {
             uri = "git3://" + uri
         }
-        const protocol = parseGit3URI(uri)
+        const protocol = await parseGit3URI(uri)
         let owner = await protocol.contract.repoNameToOwner(
             Buffer.from(protocol.repoName)
         )
@@ -215,7 +215,7 @@ program
         if (!uri.startsWith("git3://")) {
             uri = "git3://" + uri
         }
-        const protocol = parseGit3URI(uri, { skipRepoName: true })
+        const protocol = await parseGit3URI(uri, { skipRepoName: true })
         const txManager = new TxManager(
             protocol.contract,
             protocol.chainId,
