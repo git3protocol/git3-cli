@@ -1,3 +1,10 @@
+export interface QueueTaskOptions {
+    maxRetry?: number
+    queueInterval?: number
+    maxPending?: number
+    retryInterval?: number
+}
+
 export class QueueTask {
     maxRetry: number = 0
     queueInterval: number = 0
@@ -11,7 +18,12 @@ export class QueueTask {
     checkPointResolve: any
 
     index: number = 0
-    constructor({ maxRetry = 10, queueInterval = 0, maxPending = 0, retryInterval = 0 }) {
+    constructor({
+        maxRetry = 10,
+        queueInterval = 0,
+        maxPending = 0,
+        retryInterval = 0,
+    }: QueueTaskOptions) {
         this.maxRetry = maxRetry
         this.queueInterval = queueInterval
         this.maxPending = maxPending
@@ -41,7 +53,8 @@ export class QueueTask {
                 setTimeout(() => {
                     resolve(true)
                 }, delta)
-                this.lastTaskScheduled = delta
+                // console.error("wait delta", delta, "ms")
+                this.lastTaskScheduled = now + delta
                 return
             } else {
                 this.lastTaskScheduled = now
@@ -55,14 +68,17 @@ export class QueueTask {
         let lastError
         for (let i = 0; i < retry; i++) {
             this.index++
-            let start = Date.now().valueOf()
-            console.error("wait-" + this.index)
+            // let start = Date.now().valueOf()
+            // let index = this.index
+            // console.error("wait-" + index)
             await this.tickThread()
-            console.log("run-" + this.index, Date.now().valueOf() - start, "ms")
+            // console.error("run-" + index, Date.now().valueOf() - start, "ms")
 
             this.pending++
             try {
+                // let start = Date.now().valueOf()
                 let res = await func()
+                // console.error("done-" + index, Date.now().valueOf() - start, "ms")
                 this.pending--
                 this.checkPointResolve(true)
                 return res
@@ -75,4 +91,11 @@ export class QueueTask {
         }
         if (lastError) throw lastError
     }
+}
+
+export function Retrier(
+    func: Function,
+    { maxRetry = 10, queueInterval = 0, maxPending = 0, retryInterval = 0 }: QueueTaskOptions
+): Promise<any> {
+    return new QueueTask({ maxRetry, queueInterval, maxPending, retryInterval }).run(func)
 }

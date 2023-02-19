@@ -1,52 +1,52 @@
 // from https://chainid.network/chains.json
 
 const evmNetworks: Record<number, any> = {
-    1: {
-        name: "Ethereum",
-        nativeCurrency: {
-            name: "Ether",
-            symbol: "ETH",
-            decimals: 18,
-        },
-        rpc: [
-            "https://rpc.flashbots.net",
-            "https://singapore.rpc.blxrbdn.com",
-            "https://rpc.ankr.com/eth",
-        ],
-        explorers: [
-            {
-                name: "etherscan",
-                url: "https://etherscan.io",
-                standard: "EIP3091",
-            },
-        ],
-        txConst: {
-            blockTimeSec: 15,
-        },
-        contracts: { git3: "" },
-    },
-    5: {
-        name: "Goerli",
-        rpc: ["https://eth-goerli.g.alchemy.com/v2/asrXwNuiK9my-cZJYZ_ooo4q-lDw8HLm"],
-        nativeCurrency: {
-            name: "Goerli Ether",
-            symbol: "ETH",
-            decimals: 18,
-        },
-        explorers: [
-            {
-                name: "etherscan-goerli",
-                url: "https://goerli.etherscan.io",
-                standard: "EIP3091",
-            },
-        ],
-        txConst: {
-            blockTimeSec: 12,
-            rbfTimes: 6,
-            boardcastTimes: 5,
-        },
-        contracts: { git3: "0x51bb7F23193b88696D25EAec7E3293a2C96e55Ee" },
-    },
+    // 1: {
+    //     name: "Ethereum",
+    //     nativeCurrency: {
+    //         name: "Ether",
+    //         symbol: "ETH",
+    //         decimals: 18,
+    //     },
+    //     rpc: [
+    //         "https://rpc.flashbots.net",
+    //         "https://singapore.rpc.blxrbdn.com",
+    //         "https://rpc.ankr.com/eth",
+    //     ],
+    //     explorers: [
+    //         {
+    //             name: "etherscan",
+    //             url: "https://etherscan.io",
+    //             standard: "EIP3091",
+    //         },
+    //     ],
+    //     txConst: {
+    //         blockTimeSec: 15,
+    //     },
+    //     contracts: { git3: "" },
+    // },
+    // 5: {
+    //     name: "Goerli",
+    //     rpc: ["https://eth-goerli.g.alchemy.com/v2/asrXwNuiK9my-cZJYZ_ooo4q-lDw8HLm"],
+    //     nativeCurrency: {
+    //         name: "Goerli Ether",
+    //         symbol: "ETH",
+    //         decimals: 18,
+    //     },
+    //     explorers: [
+    //         {
+    //             name: "etherscan-goerli",
+    //             url: "https://goerli.etherscan.io",
+    //             standard: "EIP3091",
+    //         },
+    //     ],
+    //     txConst: {
+    //         blockTimeSec: 12,
+    //         rbfTimes: 6,
+    //         boardcastTimes: 5,
+    //     },
+    //     contracts: { git3: "0x51bb7F23193b88696D25EAec7E3293a2C96e55Ee" },
+    // },
     3334: {
         name: "Web3Q Galileo",
         nativeCurrency: {
@@ -67,29 +67,54 @@ const evmNetworks: Record<number, any> = {
         },
         contracts: { git3: "0x59ef6b2dbfE86CcAaD84E2d8e78177f528521Da9" },
     },
-    3141: {
-        name: "Filecoin - Hyperspace testnet",
+    // 3141: {
+    //     name: "Filecoin - Hyperspace testnet",
+    //     nativeCurrency: {
+    //         name: "testnet filecoin",
+    //         symbol: "tFIL",
+    //         decimals: 18,
+    //     },
+    //     rpc: [
+    //         "https://api.hyperspace.node.glif.io/rpc/v1",
+    //         //   "https://filecoin-hyperspace.chainstacklabs.com/rpc/v1",
+    //     ],
+    //     explorers: [
+    //         {
+    //             name: "Filfox - Hyperspace",
+    //             url: "https://hyperspace.filfox.info/en",
+    //             standard: "none",
+    //         },
+    //     ],
+    //     txConst: {
+    //         blockTimeSec: 30,
+    //         boardcastTimes: 5,
+    //     },
+    //     contracts: { git3: "0xF56A1dd941667911896B9B872AC79E56cfc6a3dB" },
+    // },
+    421613: {
+        name: "Arbitrum - Goerli",
         nativeCurrency: {
-            name: "testnet filecoin",
-            symbol: "tFIL",
+            name: "Arbitrum Ether",
+            symbol: "ETH",
             decimals: 18,
         },
         rpc: [
-            "https://api.hyperspace.node.glif.io/rpc/v1",
-            //   "https://filecoin-hyperspace.chainstacklabs.com/rpc/v1",
+            "https://goerli-rollup.arbitrum.io/rpc",
+            "https://arb-goerli.g.alchemy.com/v2/XT-0xyP5nTP1ltJ0MRBzvO-K9taRwt9o",
         ],
         explorers: [
             {
-                name: "Filfox - Hyperspace",
-                url: "https://hyperspace.filfox.info/en",
+                name: "arbiscan-goerli",
+                url: "https://goerli.arbiscan.io",
                 standard: "none",
             },
         ],
         txConst: {
-            blockTimeSec: 30,
-            boardcastTimes: 5,
+            blockTimeSec: 3,
+            rbfTimes: 5,
+            boardcastTimes: 10,
         },
-        contracts: { git3: "0xF56A1dd941667911896B9B872AC79E56cfc6a3dB" },
+        contracts: { git3: "0x7Bb1038106fC6490195ec9906b29C81217ab090d" },
     },
 }
 

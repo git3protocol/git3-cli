@@ -15,6 +15,10 @@ const ns: Record<string, any> = {
         chainId: 5,
         resolver: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
     },
+    arb: {
+        chainId: 421613,
+        resolver: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+    },
 }
 
 export default ns

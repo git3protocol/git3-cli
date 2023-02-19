@@ -1,4 +1,5 @@
 import { ethers } from "ethers"
+import { Retrier } from "./queue-task.js"
 
 export class TxManager {
     contract: ethers.Contract
@@ -88,14 +89,19 @@ export class TxManager {
 
     async SendCall(_method: string, _args: any[]): Promise<any> {
         let lastError: any = null
-        const nonce = await this.getNonce()
+        const nonce = await Retrier(this.getNonce.bind(this), { maxRetry: this.boardcastTimes })
         if (this.queueCurrNonce < 0) this.queueCurrNonce = nonce
 
         let unsignedTx = await this.contract.populateTransaction[_method](..._args)
         unsignedTx.nonce = nonce
         unsignedTx.chainId = this.chainId
         // estimateGas check
-        let gasLimit = await this.contract.provider.estimateGas(unsignedTx)
+        let gasLimit = await Retrier(
+            async () => await this.contract.provider.estimateGas(unsignedTx),
+            {
+                maxRetry: this.boardcastTimes,
+            }
+        )
         unsignedTx.gasLimit = gasLimit.mul((this.gasLimitRatio * 100) | 0).div(100)
         let retryRBF = this.rbfTimes
         let rbfCount = 0
@@ -106,7 +112,9 @@ export class TxManager {
             // set gas price
             let price
             try {
-                price = await this.FreshBaseGas()
+                price = await await Retrier(this.FreshBaseGas.bind(this), {
+                    maxRetry: this.boardcastTimes,
+                })
             } catch (e) {
                 price = this.price
             } finally {

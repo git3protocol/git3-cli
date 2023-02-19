@@ -4,14 +4,14 @@ import { ethers } from "ethers"
 import ipfsConf from "../config/ipfs.js"
 import axios from "axios"
 import { Git3Protocol } from "../common/git3-protocol.js"
-import { QueueTask } from "../common/queue-task.js"
+import { QueueTask, Retrier } from "../common/queue-task.js"
 
 export class SLIStorage implements Storage {
     repoName: string
     wallet: ethers.Wallet
     contract: ethers.Contract
     txManager: TxManager
-    auth: string
+    auth: string[]
 
     batchQueue: Record<string, string>[] = []
     maxBatchSize = 20
@@ -28,8 +28,10 @@ export class SLIStorage implements Storage {
         this.contract = protocol.contract
         this.wallet = protocol.wallet
         this.txManager = new TxManager(this.contract, protocol.chainId, protocol.netConfig.txConst)
-        this.auth =
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweGFEQTdCOWFlQTdGNTc2ZDI5NzM0ZWUxY0Q2ODVFMzc2OWNCM2QwRDEiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTY3NTQ5NDYwMDkzMiwibmFtZSI6ImZ2bS1oYWNrc29uIn0.YBqfsj_LTZSJPKc0OH586avnQNqove_Htzl5rrToXTk"
+        this.auth = [
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweGFEQTdCOWFlQTdGNTc2ZDI5NzM0ZWUxY0Q2ODVFMzc2OWNCM2QwRDEiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTY3NTQ5NDYwMDkzMiwibmFtZSI6ImZ2bS1oYWNrc29uIn0.YBqfsj_LTZSJPKc0OH586avnQNqove_Htzl5rrToXTk",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDhmOTY1ZjAyRWY1MzkxODBlNDNiQ0M5M0FkZDJDZDI1RjU5RjRiMzIiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTY3NjY1NDE1MzExMCwibmFtZSI6ImdpdDMifQ.f7vpBmQCMV3VIqWfPtuDNA5G5ThegjVaO4V-GCmK6wg",
+        ]
 
         this.txManager = new TxManager(this.contract, protocol.chainId, protocol.netConfig.txConst)
 
@@ -38,9 +40,9 @@ export class SLIStorage implements Storage {
         })
 
         this.storageTask = new QueueTask({
-            maxRetry: 10,
+            maxRetry: 30,
             queueInterval: 400,
-            maxPending: 20,
+            maxPending: 100,
             retryInterval: 500,
         })
     }
@@ -57,19 +59,31 @@ export class SLIStorage implements Storage {
     }
 
     async download(path: string): Promise<[Status, Buffer]> {
-        const res = await this.contract.download(Buffer.from(this.repoName), Buffer.from(path))
+        const res = await Retrier(
+            async () => await this.contract.download(Buffer.from(this.repoName), Buffer.from(path)),
+            { maxRetry: 10 }
+        )
         const buffer = Buffer.from(res.slice(2), "hex")
         const cid = buffer.toString("utf8")
         for (let i = 0; i < ipfsConf.gateways.length; i++) {
             let gateway = ipfsConf.gateways[Math.floor(Math.random() * ipfsConf.gateways.length)] //random get rpc
             try {
-                let response = await axios.get(gateway + cid, {
-                    responseType: "arraybuffer",
-                })
-                if (response.status === 200) {
-                    console.error(`=== download file ${path} succeed ===`)
-                    return [Status.SUCCEED, Buffer.from(response.data)]
-                }
+                let resault = await Retrier(
+                    async () => {
+                        const TIMEOUT = 15
+                        let response = await axios.get(gateway + cid, {
+                            responseType: "arraybuffer",
+                            timeout: TIMEOUT * 1000,
+                        })
+                        if (response.status === 200) {
+                            return Buffer.from(response.data)
+                        } else {
+                            throw new Error(`download failed: ${response.status}`)
+                        }
+                    },
+                    { maxRetry: 3 }
+                )
+                return [Status.SUCCEED, resault]
             } catch (e) {
                 //pass
             }
@@ -191,13 +205,13 @@ export class SLIStorage implements Storage {
     }
 
     async storeIPFS(data: Buffer): Promise<string> {
-        const TIMEOUT = 30
+        const TIMEOUT = 15
         try {
             let cid = await this.storageTask.run(async () => {
                 let response = await axios.post("https://api.nft.storage/upload", data, {
                     headers: {
                         "Content-Type": "application/octet-stream",
-                        Authorization: this.auth,
+                        Authorization: this.auth[Math.floor(Math.random() * this.auth.length)],
                     },
                     timeout: TIMEOUT * 1000,
                 })
