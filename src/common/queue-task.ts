@@ -53,10 +53,13 @@ export class QueueTask {
                 setTimeout(() => {
                     resolve(true)
                 }, delta)
-                // console.error("wait delta", delta, "ms")
+
                 this.lastTaskScheduled = now + delta
                 return
             } else {
+                setTimeout(() => {
+                    resolve(true)
+                }, 0)
                 this.lastTaskScheduled = now
                 resolve(true)
                 return

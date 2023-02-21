@@ -31,6 +31,10 @@ export class SLIStorage implements Storage {
         this.auth = [
             "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweGFEQTdCOWFlQTdGNTc2ZDI5NzM0ZWUxY0Q2ODVFMzc2OWNCM2QwRDEiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTY3NTQ5NDYwMDkzMiwibmFtZSI6ImZ2bS1oYWNrc29uIn0.YBqfsj_LTZSJPKc0OH586avnQNqove_Htzl5rrToXTk",
             "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDhmOTY1ZjAyRWY1MzkxODBlNDNiQ0M5M0FkZDJDZDI1RjU5RjRiMzIiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTY3NjY1NDE1MzExMCwibmFtZSI6ImdpdDMifQ.f7vpBmQCMV3VIqWfPtuDNA5G5ThegjVaO4V-GCmK6wg",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDhmOTY1ZjAyRWY1MzkxODBlNDNiQ0M5M0FkZDJDZDI1RjU5RjRiMzIiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTY3Njg4ODAzMzIwMCwibmFtZSI6ImdpdDQifQ.HPa-8s6O-DVkFSzvo9QzhEqKl4Hi06NtgjGhglyuzbQ",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDhmOTY1ZjAyRWY1MzkxODBlNDNiQ0M5M0FkZDJDZDI1RjU5RjRiMzIiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTY3Njg4ODMzNDQ4NiwibmFtZSI6ImdpdDUifQ.NvGxjtx048uNb0sZXIN3aJfdldISdDllcQq9xq_gAaI",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDhmOTY1ZjAyRWY1MzkxODBlNDNiQ0M5M0FkZDJDZDI1RjU5RjRiMzIiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTY3Njg4ODM4NjkxMiwibmFtZSI6ImdpdDYifQ.C4vSfG_sSSwnOzAMfy2ccvvoh4iiFiiC1-ejU5Vo4ek",
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDhmOTY1ZjAyRWY1MzkxODBlNDNiQ0M5M0FkZDJDZDI1RjU5RjRiMzIiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTY3Njg5MjQ2NDk3MywibmFtZSI6ImdpdDcifQ.4tXjPZxG99LVqhqCklSfSDTxBDeY2dCSsatcLbmrt0o",
         ]
 
         this.txManager = new TxManager(this.contract, protocol.chainId, protocol.netConfig.txConst)
@@ -208,39 +212,35 @@ export class SLIStorage implements Storage {
         const TIMEOUT = 15
         try {
             let cid = await this.storageTask.run(async () => {
-                let response = await axios.post("https://api.nft.storage/upload", data, {
-                    headers: {
-                        "Content-Type": "application/octet-stream",
-                        Authorization: this.auth[Math.floor(Math.random() * this.auth.length)],
-                    },
-                    timeout: TIMEOUT * 1000,
-                })
-                if (response.status == 200) {
-                    return response.data.value.cid
-                } else {
-                    throw new Error(`response code: ${response.status}`)
+                // let start = Date.now().valueOf()
+                let index = Math.floor(Math.random() * this.auth.length)
+                try {
+                    let response = await axios.post("https://api.nft.storage/upload", data, {
+                        headers: {
+                            "Content-Type": "application/octet-stream",
+                            Authorization: this.auth[index],
+                        },
+                        timeout: TIMEOUT * 1000,
+                    })
+                    // let end = Date.now().valueOf()
+                    if (response.status == 200) {
+                        // console.error(`nft.storage success ${end - start}ms ${index}`)
+                        return response.data.value.cid
+                    } else {
+                        // console.error(
+                        //     `nft.storage status ${response.status} ${end - start}ms ${index}`
+                        // )
+                        throw new Error(`response code: ${response.status}`)
+                    }
+                } catch (e) {
+                    // let end = Date.now().valueOf()
+                    // console.error(`nft.storage failed ${end - start}ms ${e} ${index}`)
+                    throw new Error(`nft.storage failed: ${e}`)
                 }
             })
             return cid
         } catch (e) {
             throw new Error(`store ipfs failed: ${e}`)
         }
-
-        // for (let i = 0; i < RETRY_TIMES; i++) {
-        //     try {
-        //         while (
-        //             Date.now().valueOf() - this.storageCallLastTime <
-        //             this.storageIntervalLimit
-        //         ) {
-        //             await new Promise((r) => setTimeout(r, this.storageIntervalLimit / 2))
-        //         }
-        //         this.storageCallLastTime = Date.now().valueOf()
-
-        //     } catch (e) {
-        //         //pass
-        //         lastError = e
-        //         new Promise((r) => setTimeout(r, 1000))
-        //     }
-        // }
     }
 }

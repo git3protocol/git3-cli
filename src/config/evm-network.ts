@@ -47,26 +47,6 @@ const evmNetworks: Record<number, any> = {
     //     },
     //     contracts: { git3: "0x51bb7F23193b88696D25EAec7E3293a2C96e55Ee" },
     // },
-    3334: {
-        name: "Web3Q Galileo",
-        nativeCurrency: {
-            name: "Web3Q",
-            symbol: "W3Q",
-            decimals: 18,
-        },
-        rpc: ["https://galileo.web3q.io:8545"],
-        explorers: [
-            {
-                name: "w3q-galileo",
-                url: "https://explorer.galileo.web3q.io",
-                standard: "EIP3091",
-            },
-        ],
-        txConst: {
-            blockTimeSec: 7,
-        },
-        contracts: { git3: "0x59ef6b2dbfE86CcAaD84E2d8e78177f528521Da9" },
-    },
     // 3141: {
     //     name: "Filecoin - Hyperspace testnet",
     //     nativeCurrency: {
@@ -91,6 +71,26 @@ const evmNetworks: Record<number, any> = {
     //     },
     //     contracts: { git3: "0xF56A1dd941667911896B9B872AC79E56cfc6a3dB" },
     // },
+    3334: {
+        name: "Web3Q Galileo",
+        nativeCurrency: {
+            name: "Web3Q",
+            symbol: "W3Q",
+            decimals: 18,
+        },
+        rpc: ["https://galileo.web3q.io:8545"],
+        explorers: [
+            {
+                name: "w3q-galileo",
+                url: "https://explorer.galileo.web3q.io",
+                standard: "EIP3091",
+            },
+        ],
+        txConst: {
+            blockTimeSec: 7,
+        },
+        contracts: { git3: "0x59ef6b2dbfE86CcAaD84E2d8e78177f528521Da9" },
+    },
     421613: {
         name: "Arbitrum - Goerli",
         nativeCurrency: {
