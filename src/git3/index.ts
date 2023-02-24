@@ -137,7 +137,7 @@ program
 
 program
     .command("create")
-    .argument("<uri>", "ex: default@git3.w3q/repo_name")
+    .argument("<uri>", "ex: git3.w3q/repo_name")
     .description("create a new repo")
     .action(async (uri) => {
         if (!uri.startsWith("git3://")) {

@@ -48,7 +48,7 @@ export async function parseGit3URI(
     } else {
         ;[nsName, nsDomain] = url.hostname.split(".")
         ns = nameServices[nsDomain]
-        if (!ns) throw new Error("invalid name service")
+        if (!ns) throw new Error(`invalid name service ${nsDomain}`)
         chainId = chainId || ns.chainId
         // Todo: temporary resolve name service
 
@@ -58,7 +58,7 @@ export async function parseGit3URI(
             resolverAddress,
             abis.NameService
         )
-        hubAddress = await nsContract.NameHub([nsName, nsDomain].join("."))
+        hubAddress = await nsContract.nameHub([nsName, nsDomain].join("."))
         if (hubAddress == "0x0000000000000000000000000000000000000000")
             throw new Error(`${nsName} not found`)
     }
