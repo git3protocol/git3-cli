@@ -120,7 +120,7 @@ class Git {
 
     async download(sha: string): Promise<Error | null> {
         log("fetching...", sha)
-        let [status, data] = await this.storage.download(this.objectPath(sha))
+        let [status, data] = await this.storage.download(sha) //this.objectPath(sha)
         if (status == Status.SUCCEED) {
             let computedSha = GitUtils.decodeObject(data)
             if (computedSha != sha) {
@@ -146,7 +146,7 @@ class Git {
             pendings.push(this.putObject(obj))
         }
         let resault = await this.storage.uploadCommit()
-        if(resault!= Status.SUCCEED){
+        if (resault != Status.SUCCEED) {
             return `error ${dst} upload commit fail`
         }
         let resaults = await Promise.all(pendings)
@@ -166,11 +166,7 @@ class Git {
         }
     }
 
-    async wirteRef(
-        newSha: string,
-        dst: string,
-        force: boolean
-    ): Promise<string | null> {
+    async wirteRef(newSha: string, dst: string, force: boolean): Promise<string | null> {
         let sha = this.refs.get(dst)
         if (sha) {
             if (!GitUtils.objectExists(sha)) {
@@ -200,16 +196,16 @@ class Git {
 
     async putObject(sha: string): Promise<string> {
         let data = GitUtils.encodeObject(sha)
-        let path = this.objectPath(sha)
+        let path = sha //this.objectPath(sha)
         let status = await this.storage.upload(path, data)
         return status
     }
 
-    objectPath(name: string): string {
-        const prefix = name.slice(0, 2)
-        const suffix = name.slice(2)
-        return join("objects", prefix, suffix)
-    }
+    // objectPath(name: string): string {
+    //     const prefix = name.slice(0, 2)
+    //     const suffix = name.slice(2)
+    //     return join("objects", prefix, suffix)
+    // }
 
     async getRefs(forPush: boolean): Promise<Ref[]> {
         let refs = await this.storage.listRefs()

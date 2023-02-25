@@ -34,3 +34,11 @@ export function setupContract(
 export function randomRPC(rpcs: string[]): string {
     return rpcs[Math.floor(Math.random() * rpcs.length)]
 }
+
+export function explorerTxUrl(txHash: string, explorers: any[]): string {
+    if (explorers && explorers.length > 0) {
+        return explorers[0].url.replace(/\/+$/, "") + "/tx/" + txHash
+    } else {
+        return txHash
+    }
+}

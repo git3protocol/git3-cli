@@ -11,7 +11,7 @@ export class ETHStorage implements Storage {
 
     constructor(protocol: Git3Protocol) {
         this.repoName = protocol.repoName
-        this.contract = protocol.contract
+        this.contract = protocol.hub
         this.wallet = protocol.wallet
         this.txManager = new TxManager(this.contract, protocol.chainId, protocol.netConfig.txConst)
     }
@@ -20,7 +20,7 @@ export class ETHStorage implements Storage {
     }
 
     async repoRoles(): Promise<string[]> {
-        let owner = await this.contract.repoNameToOwner(Buffer.from(this.repoName))
+        let owner = await this.contract.repoOwner(Buffer.from(this.repoName))
         if (owner === ethers.constants.AddressZero) return []
         return [owner]
     }
@@ -60,7 +60,7 @@ export class ETHStorage implements Storage {
     }
 
     async listRefs(): Promise<Ref[]> {
-        const res: string[][] = await this.contract.listRefs(Buffer.from(this.repoName))
+        const res: string[][] = await this.contract.listRepoRefs(Buffer.from(this.repoName))
         let refs = res.map((i) => ({
             ref: Buffer.from(i[1].slice(2), "hex")
                 .toString("utf8")
@@ -73,7 +73,7 @@ export class ETHStorage implements Storage {
     async setRef(path: string, sha: string): Promise<Status> {
         try {
             console.error(`=== setting ref ${path} ===`)
-            await this.txManager.SendCall("setRef", [
+            await this.txManager.SendCall("setRepoRef", [
                 Buffer.from(this.repoName),
                 Buffer.from(path),
                 "0x" + sha,
