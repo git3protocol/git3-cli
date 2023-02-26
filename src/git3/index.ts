@@ -235,6 +235,124 @@ program
     })
 
 program
+    .command("addManager")
+    .argument("<hub>", "hub_name.NS or hub_address:chain_id")
+    .argument("<manager address>", "manager address")
+    .description("add a manager into hub")
+    .action(async (hub,managerAddr) => {
+        let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
+        let [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(protocol.wallet.address)
+        if (!isAdmin) {
+            let hubName = protocol.ns
+                ? `${protocol.nsName}.${protocol.nsDomain}`
+                : protocol.hubAddress
+            console.error(`[addManager] can only be executed with the admin authority of this hub: ${hubName}`)
+            return
+        }
+
+        [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(managerAddr)
+        if (isManager) {
+            let hubName = protocol.ns
+                ? `${protocol.nsName}.${protocol.nsDomain}`
+                : protocol.hubAddress
+            console.error(`${managerAddr} is already a manager to hub: ${hubName}`)
+            return
+        }
+
+        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
+        let receipt = await txManager.SendCall("addManager", [managerAddr])
+        console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
+    })
+
+program
+    .command("removeManager")
+    .argument("<hub>", "hub_name.NS or hub_address:chain_id")
+    .argument("<manager address>", "manager address")
+    .description("remove a manager from hub")
+    .action(async (hub,managerAddr) => {
+        let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
+        let [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(protocol.wallet.address)
+        if (!isAdmin) {
+            let hubName = protocol.ns
+                ? `${protocol.nsName}.${protocol.nsDomain}`
+                : protocol.hubAddress
+            console.error(`[removeManager] can only be executed with the admin authority of this hub: ${hubName}`)
+            return
+        }
+
+        [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(managerAddr)
+        if (!isManager) {
+            let hubName = protocol.ns
+                ? `${protocol.nsName}.${protocol.nsDomain}`
+                : protocol.hubAddress
+            console.error(`${managerAddr} is not a manager to hub: ${hubName}`)
+            return
+        }
+
+        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
+        let receipt = await txManager.SendCall("removeManager", [managerAddr])
+        console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
+    })
+
+program
+    .command("addContributor")
+    .argument("<hub>", "hub_name.NS or hub_address:chain_id")
+    .argument("<contributor address>", "contributor address")
+    .description("add a manager into hub")
+    .action(async (hub,contributorAddr) => {
+        let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
+        let [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(protocol.wallet.address)
+        if (!isManager) {
+            let hubName = protocol.ns
+                ? `${protocol.nsName}.${protocol.nsDomain}`
+                : protocol.hubAddress
+            console.error(`[addContributor] can only be executed with the manager authority of this hub: ${hubName}`)
+            return
+        }
+
+        [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(contributorAddr)
+        if (isContributor) {
+            let hubName = protocol.ns
+                ? `${protocol.nsName}.${protocol.nsDomain}`
+                : protocol.hubAddress
+            console.error(`${contributorAddr} is already a contributor to hub: ${hubName}`)
+            return
+        }
+        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
+        let receipt = await txManager.SendCall("addContributor", [contributorAddr])
+        console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
+    })
+
+program
+    .command("removeContributor")
+    .argument("<hub>", "hub_name.NS or hub_address:chain_id")
+    .argument("<contributor address>", "contributor address")
+    .description("add a manager into hub")
+    .action(async (hub,contributorAddr) => {
+        let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
+        let [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(protocol.wallet.address)
+        if (!isManager) {
+            let hubName = protocol.ns
+                ? `${protocol.nsName}.${protocol.nsDomain}`
+                : protocol.hubAddress
+            console.error(`[removeContributor] can only be executed with the manager authority of this hub: ${hubName}`)
+            return
+        }
+
+        [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(contributorAddr)
+        if (!isContributor) {
+            let hubName = protocol.ns
+                ? `${protocol.nsName}.${protocol.nsDomain}`
+                : protocol.hubAddress
+            console.error(`${contributorAddr} is not a contributor to hub: ${hubName}`)
+            return
+        }
+        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
+        let receipt = await txManager.SendCall("removeContributor", [contributorAddr])
+        console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
+    })
+
+program
     .command("info")
     .argument("[wallet]", "wallet you want to get info", "default")
     .description("get info of a wallet")
