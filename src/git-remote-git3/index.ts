@@ -11,6 +11,7 @@ GitRemoteHelper({
     api: {
         init: async (p: ApiBaseParams) => {
             const protocol = await parseGit3URI(p.remoteUrl)
+            // init storage according to the protocol 
             const storage = new protocol.storageClass(protocol)
             git = new Git(p, storage)
             return
