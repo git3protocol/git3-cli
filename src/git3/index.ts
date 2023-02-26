@@ -179,7 +179,7 @@ create
 
 create
     .command("repo")
-    .argument("<uri>", "ex: git3.w3q/repo_name")
+    .argument("<uri>", "ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
     .description("create a new repo")
     .action(async (uri) => {
         const protocol = await parseGit3URI(uri, { ignoreProtocolHeader: true })
@@ -295,7 +295,7 @@ program
     })
 
 program
-    .command("addContributor")
+    .command("addCon")
     .argument("<hub>", "hub_name.NS or hub_address:chain_id")
     .argument("<contributor address>", "contributor address")
     .description("add a manager into hub")
@@ -324,7 +324,7 @@ program
     })
 
 program
-    .command("removeContributor")
+    .command("removeCon")
     .argument("<hub>", "hub_name.NS or hub_address:chain_id")
     .argument("<contributor address>", "contributor address")
     .description("add a manager into hub")
@@ -351,6 +351,62 @@ program
         let receipt = await txManager.SendCall("removeContributor", [contributorAddr])
         console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
     })
+
+// repo funcitons 
+let repository = program
+    .command("repository")
+    .description("repository related operations")
+
+repository
+    .command("members")
+    .argument("<uri>","ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
+    .description("get all members information of the repository")
+    .action(async (uri) => {
+        let protocol = await parseGit3URI(uri, { ignoreProtocolHeader: true, skipRepoName: true })
+        let owner = await protocol.hub.repoOwner(Buffer.from(protocol.repoName))
+        let contributors = await protocol.hub.repoContributors(Buffer.from(protocol.repoName))
+
+        console.log(`owner:${owner} \ncontributors:${contributors}`)
+    })
+
+repository
+    .command("addCon")
+    .argument("<uri>","ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
+    .argument("<con addr>","contributor address")
+    .description("add a contributor into the specified repository")
+    .action(async (uri,conAddr) => {
+        let protocol = await parseGit3URI(uri, { ignoreProtocolHeader: true, skipRepoName: true })
+        let owner = await protocol.hub.repoOwner(Buffer.from(protocol.repoName))
+        if (owner != protocol.wallet.address){
+            let hubName = protocol.ns
+                ? `${protocol.nsName}.${protocol.nsDomain}`
+                : protocol.hubAddress
+            console.error(`[repo addContributor] can only be executed with the owner authority of this repository:${protocol.repoName}-hub:${hubName}`)
+        }
+        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
+        let receipt = await txManager.SendCall("addRepoContributor", [Buffer.from(protocol.repoName),conAddr])
+        console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
+    })
+
+repository
+    .command("removeCon")
+    .argument("<uri>","ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
+    .argument("<con addr>","contributor address")
+    .description("remove a contributor from the specified repository")
+    .action(async (uri,conAddr) => {
+        let protocol = await parseGit3URI(uri, { ignoreProtocolHeader: true, skipRepoName: true })
+        let owner = await protocol.hub.repoOwner(Buffer.from(protocol.repoName))
+        if (owner != protocol.wallet.address){
+            let hubName = protocol.ns
+                ? `${protocol.nsName}.${protocol.nsDomain}`
+                : protocol.hubAddress
+            console.error(`[repository removeContributor] can only be executed with the owner authority of this repository:${protocol.repoName}-hub:${hubName}`)
+        }
+        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
+        let receipt = await txManager.SendCall("removeRepoContributor", [Buffer.from(protocol.repoName),conAddr])
+        console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
+    })
+
 
 program
     .command("info")
