@@ -61,13 +61,14 @@ const WAIT_SECONDS = 10
 
 async function eventIterator(
     contract: ethers.Contract,
-    filter: any,
+    filters: any[],
     last: number,
     saveLastCallback: (_last: number) => void,
     eventCallback: (event: any) => void,
     stop: () => boolean = () => false
 ) {
     let provider = contract.provider
+
     while (true) {
         if (stop && stop()) break
         let lastBlock = await provider.getBlockNumber()
@@ -75,13 +76,16 @@ async function eventIterator(
             let end = i + RANGE - 1
             if (end >= lastBlock) end = lastBlock - 1
             console.log(i, end)
-            let events = await Retrier(async () => await contract.queryFilter(filter, i, end), {
-                maxRetry: 10,
-            })
-            for (const event of events) {
-                await eventCallback(event)
-                //console.log(protocol.chainId, i, end, event.args, event)
+            for (const filter of filters) {
+                let events = await Retrier(async () => await contract.queryFilter(filter, i, end), {
+                    maxRetry: 10,
+                })
+                for (const event of events) {
+                    await eventCallback(event)
+                    //console.log(protocol.chainId, i, end, event.args, event)
+                }
             }
+
             last = end
             saveLastCallback(last)
         }
@@ -95,7 +99,7 @@ async function syncFactory(protocol: FactoryProtocol) {
     console.log("syncFactory", protocol.chainId, last)
     await eventIterator(
         factory,
-        factory.filters.CreateHub(),
+        [factory.filters.CreateHub()],
         last,
         (_last) => {
             cache.factory[protocol.chainId].last = _last
@@ -115,6 +119,10 @@ async function syncFactory(protocol: FactoryProtocol) {
     )
 }
 
+function Hex0xToStr(hex0x: string) {
+    return Buffer.from(hex0x.slice(2), "hex").toString()
+}
+
 async function syncHub(hubAddr: string, start: number) {
     if (start > 0) {
         cache.hubs[hubAddr] = { start, last: start }
@@ -122,9 +130,10 @@ async function syncHub(hubAddr: string, start: number) {
     let protocol = await parseGit3URI(hubAddr, { skipRepoName: true, ignoreProtocolHeader: true })
     let hub = protocol.hub
     let last = cache.hubs[hubAddr].last
+
     await eventIterator(
         hub,
-        hub.filters.RepoCreated(),
+        [hub.filters.RepoCreated(), hub.filters.SetRepoRef()],
         last,
         (_last) => {
             if (cache.hubs[hubAddr]) {
@@ -132,10 +141,15 @@ async function syncHub(hubAddr: string, start: number) {
                 saveCache(cache)
             }
         },
-        (event) => {
-            let repoName = Buffer.from(event.args!.repoName.slice(2), "hex").toString()
-            console.log("repo:", hubAddr, repoName)
-            mirrorRepo(hubAddr, repoName)
+        async (event) => {
+            if (event.event == "RepoCreated") {
+                let repoName = Hex0xToStr(event.args!.repoName)
+                console.log("repo:", hubAddr, repoName)
+                await mirrorRepo(hubAddr, repoName)
+            } else if (event.event == "SetRepoRef") {
+                let repoName = Hex0xToStr(event.args!.repoName)
+                await pullRepo(hubAddr, repoName)
+            }
         },
         () => {
             return !cache.hubs[hubAddr]
@@ -158,6 +172,12 @@ async function mirrorRepo(hubAddr: string, repoName: string) {
     console.log("mirrorRepo", uri, res.status)
 }
 
+async function pullRepo(hubAddr: string, repoName: string) {
+    let uri = `git3://${hubAddr}/${repoName}`
+    let res = await api.post(`/repos/${hubAddr}/${repoName}/mirror-sync`)
+    console.log("pullRepo", uri, res.status)
+}
+
 async function migrateHub(oldHubAddr: string, newHubAddr: string) {
     console.log("migrateHub:", oldHubAddr, newHubAddr)
     let oldHub = cache.hubs[oldHubAddr]
@@ -177,7 +197,7 @@ async function syncNameService() {
 
     await eventIterator(
         nsContract,
-        nsContract.filters.RegisterHub(),
+        [nsContract.filters.RegisterHub()],
         last,
         (_last) => {
             cache.ns.last = _last
