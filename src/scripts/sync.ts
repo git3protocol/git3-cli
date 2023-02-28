@@ -14,7 +14,7 @@ import { Retrier } from "../common/queue-task.js"
 let cache = loadCache()
 
 export let api = axios.create({
-    baseURL: "http://localhost:3001/api/v1/",
+    baseURL: `http://127.0.0.1:${process.env.port || 3331}/api/v1/`,
     responseType: "json",
     headers: {
         "Content-Type": "application/json",
