@@ -71,7 +71,7 @@ async function eventIterator(
 
     while (true) {
         if (stop && stop()) break
-        let lastBlock = await Retrier(provider.getBlockNumber, { maxRetry: 10 })
+        let lastBlock = await Retrier(async () => await provider.getBlockNumber(), { maxRetry: 10 })
         for (let i = last; i < lastBlock; i += RANGE) {
             let end = i + RANGE - 1
             if (end >= lastBlock) end = lastBlock - 1
