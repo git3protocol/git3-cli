@@ -5,11 +5,9 @@ import bip39 from "bip39"
 import inquirer from "inquirer"
 import { importActions, generateActions } from "./actions.js"
 import network from "../config/evm-network.js"
-import { explorerTxUrl, getWallet, randomRPC, setupContract } from "../common/wallet.js"
-import { parseGit3URI } from "../common/git3-protocol.js"
+import { explorerTxUrl, getWallet, randomRPC } from "../common/wallet.js"
+import { initFactoryByChainID, parseGit3URI } from "../common/git3-protocol.js"
 import { TxManager } from "../common/tx-manager.js"
-import nameServices from "../config/name-services.js"
-import abis from "../config/abis.js"
 
 const program = new Command()
 
@@ -142,31 +140,17 @@ create
     .argument("[is_permissionless]", "true or false", false)
     .description("create a new hub")
     .action(async (chain, isPermissionless) => {
-        let netConfig, chainId
-        chainId = parseInt(chain)
-        if (chainId) {
-            netConfig = network[chainId]
-        } else {
-            let ns = nameServices[chain]
-            if (!ns) throw new Error(`invalid name service ${chain}`)
-            chainId = ns.chainId
-            netConfig = network[chainId]
-        }
-
         const wallet = await getWallet()
-        let rpc = randomRPC(netConfig.rpc)
-        const provider = new ethers.providers.JsonRpcProvider(rpc)
+        let protocol = await initFactoryByChainID(chain, wallet)
 
-        let factory = setupContract(provider, netConfig.contracts.factory, abis.Factory, wallet)
-        let txManager = new TxManager(factory, chainId, netConfig.txConst)
-        let receipt = await txManager.SendCall("createHub", [isPermissionless])
+        let receipt = await protocol.txManager.SendCall("createHub", [isPermissionless])
         // let CreateHubEvent = factory.interface.getEvent("CreateHub");
-        console.log(explorerTxUrl(receipt.transactionHash, netConfig.explorers))
+        console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
 
         let events = receipt.logs
             .map((log: any) => {
                 try {
-                    return factory.interface.parseLog(log)
+                    return protocol.factory.interface.parseLog(log)
                 } catch (e) {
                     return null
                 }
@@ -239,18 +223,22 @@ program
     .argument("<hub>", "hub_name.NS or hub_address:chain_id")
     .argument("<manager address>", "manager address")
     .description("add a manager into hub")
-    .action(async (hub,managerAddr) => {
+    .action(async (hub, managerAddr) => {
         let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
-        let [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(protocol.wallet.address)
+        let [isAdmin, isManager, isContributor] = await protocol.hub.memberRole(
+            protocol.wallet.address
+        )
         if (!isAdmin) {
             let hubName = protocol.ns
                 ? `${protocol.nsName}.${protocol.nsDomain}`
                 : protocol.hubAddress
-            console.error(`[addManager] can only be executed with the admin authority of this hub: ${hubName}`)
+            console.error(
+                `[addManager] can only be executed with the admin authority of this hub: ${hubName}`
+            )
             return
         }
 
-        [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(managerAddr)
+        ;[isAdmin, isManager, isContributor] = await protocol.hub.memberRole(managerAddr)
         if (isManager) {
             let hubName = protocol.ns
                 ? `${protocol.nsName}.${protocol.nsDomain}`
@@ -269,18 +257,22 @@ program
     .argument("<hub>", "hub_name.NS or hub_address:chain_id")
     .argument("<manager address>", "manager address")
     .description("remove a manager from hub")
-    .action(async (hub,managerAddr) => {
+    .action(async (hub, managerAddr) => {
         let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
-        let [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(protocol.wallet.address)
+        let [isAdmin, isManager, isContributor] = await protocol.hub.memberRole(
+            protocol.wallet.address
+        )
         if (!isAdmin) {
             let hubName = protocol.ns
                 ? `${protocol.nsName}.${protocol.nsDomain}`
                 : protocol.hubAddress
-            console.error(`[removeManager] can only be executed with the admin authority of this hub: ${hubName}`)
+            console.error(
+                `[removeManager] can only be executed with the admin authority of this hub: ${hubName}`
+            )
             return
         }
 
-        [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(managerAddr)
+        ;[isAdmin, isManager, isContributor] = await protocol.hub.memberRole(managerAddr)
         if (!isManager) {
             let hubName = protocol.ns
                 ? `${protocol.nsName}.${protocol.nsDomain}`
@@ -299,18 +291,22 @@ program
     .argument("<hub>", "hub_name.NS or hub_address:chain_id")
     .argument("<contributor address>", "contributor address")
     .description("add a manager into hub")
-    .action(async (hub,contributorAddr) => {
+    .action(async (hub, contributorAddr) => {
         let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
-        let [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(protocol.wallet.address)
+        let [isAdmin, isManager, isContributor] = await protocol.hub.memberRole(
+            protocol.wallet.address
+        )
         if (!isManager) {
             let hubName = protocol.ns
                 ? `${protocol.nsName}.${protocol.nsDomain}`
                 : protocol.hubAddress
-            console.error(`[addContributor] can only be executed with the manager authority of this hub: ${hubName}`)
+            console.error(
+                `[addContributor] can only be executed with the manager authority of this hub: ${hubName}`
+            )
             return
         }
 
-        [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(contributorAddr)
+        ;[isAdmin, isManager, isContributor] = await protocol.hub.memberRole(contributorAddr)
         if (isContributor) {
             let hubName = protocol.ns
                 ? `${protocol.nsName}.${protocol.nsDomain}`
@@ -328,18 +324,22 @@ program
     .argument("<hub>", "hub_name.NS or hub_address:chain_id")
     .argument("<contributor address>", "contributor address")
     .description("add a manager into hub")
-    .action(async (hub,contributorAddr) => {
+    .action(async (hub, contributorAddr) => {
         let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
-        let [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(protocol.wallet.address)
+        let [isAdmin, isManager, isContributor] = await protocol.hub.memberRole(
+            protocol.wallet.address
+        )
         if (!isManager) {
             let hubName = protocol.ns
                 ? `${protocol.nsName}.${protocol.nsDomain}`
                 : protocol.hubAddress
-            console.error(`[removeContributor] can only be executed with the manager authority of this hub: ${hubName}`)
+            console.error(
+                `[removeContributor] can only be executed with the manager authority of this hub: ${hubName}`
+            )
             return
         }
 
-        [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(contributorAddr)
+        ;[isAdmin, isManager, isContributor] = await protocol.hub.memberRole(contributorAddr)
         if (!isContributor) {
             let hubName = protocol.ns
                 ? `${protocol.nsName}.${protocol.nsDomain}`
@@ -352,14 +352,12 @@ program
         console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
     })
 
-// repo funcitons 
-let repository = program
-    .command("repository")
-    .description("repository related operations")
+// repo funcitons
+let repository = program.command("repository").description("repository related operations")
 
 repository
     .command("members")
-    .argument("<uri>","ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
+    .argument("<uri>", "ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
     .description("get all members information of the repository")
     .action(async (uri) => {
         let protocol = await parseGit3URI(uri, { ignoreProtocolHeader: true, skipRepoName: true })
@@ -371,42 +369,51 @@ repository
 
 repository
     .command("addCon")
-    .argument("<uri>","ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
-    .argument("<con addr>","contributor address")
+    .argument("<uri>", "ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
+    .argument("<con addr>", "contributor address")
     .description("add a contributor into the specified repository")
-    .action(async (uri,conAddr) => {
+    .action(async (uri, conAddr) => {
         let protocol = await parseGit3URI(uri, { ignoreProtocolHeader: true, skipRepoName: true })
         let owner = await protocol.hub.repoOwner(Buffer.from(protocol.repoName))
-        if (owner != protocol.wallet.address){
+        if (owner != protocol.wallet.address) {
             let hubName = protocol.ns
                 ? `${protocol.nsName}.${protocol.nsDomain}`
                 : protocol.hubAddress
-            console.error(`[repo addContributor] can only be executed with the owner authority of this repository:${protocol.repoName}-hub:${hubName}`)
+            console.error(
+                `[repo addContributor] can only be executed with the owner authority of this repository:${protocol.repoName}-hub:${hubName}`
+            )
         }
         const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
-        let receipt = await txManager.SendCall("addRepoContributor", [Buffer.from(protocol.repoName),conAddr])
+        let receipt = await txManager.SendCall("addRepoContributor", [
+            Buffer.from(protocol.repoName),
+            conAddr,
+        ])
         console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
     })
 
 repository
     .command("removeCon")
-    .argument("<uri>","ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
-    .argument("<con addr>","contributor address")
+    .argument("<uri>", "ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
+    .argument("<con addr>", "contributor address")
     .description("remove a contributor from the specified repository")
-    .action(async (uri,conAddr) => {
+    .action(async (uri, conAddr) => {
         let protocol = await parseGit3URI(uri, { ignoreProtocolHeader: true, skipRepoName: true })
         let owner = await protocol.hub.repoOwner(Buffer.from(protocol.repoName))
-        if (owner != protocol.wallet.address){
+        if (owner != protocol.wallet.address) {
             let hubName = protocol.ns
                 ? `${protocol.nsName}.${protocol.nsDomain}`
                 : protocol.hubAddress
-            console.error(`[repository removeContributor] can only be executed with the owner authority of this repository:${protocol.repoName}-hub:${hubName}`)
+            console.error(
+                `[repository removeContributor] can only be executed with the owner authority of this repository:${protocol.repoName}-hub:${hubName}`
+            )
         }
         const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
-        let receipt = await txManager.SendCall("removeRepoContributor", [Buffer.from(protocol.repoName),conAddr])
+        let receipt = await txManager.SendCall("removeRepoContributor", [
+            Buffer.from(protocol.repoName),
+            conAddr,
+        ])
         console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
     })
-
 
 program
     .command("info")

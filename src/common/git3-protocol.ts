@@ -6,6 +6,7 @@ import { getWallet, randomRPC, setupContract } from "./wallet.js"
 import Url from "url-parse"
 import network from "../config/evm-network.js"
 import abis from "../config/abis.js"
+import { TxManager } from "./tx-manager.js"
 
 export type Git3Protocol = {
     sender: string
@@ -20,23 +21,37 @@ export type Git3Protocol = {
     ns?: Record<string, any>
     nsName?: string
     nsDomain?: string
+    factory?: ethers.Contract
 }
 
-type Option = {
+export type ParseOption = {
     skipRepoName?: boolean
     ignoreProtocolHeader?: boolean
+    includeFactory?: boolean
+}
+
+export function initNameService(): ethers.Contract {
+    let nsContract = setupContract(
+        new ethers.providers.JsonRpcProvider("https://goerli-rollup.arbitrum.io/rpc"),
+        nameServices.resolver_,
+        abis.NameService
+    )
+    return nsContract
 }
 
 export async function parseGit3URI(
     uri: string,
-    option: Option = { skipRepoName: false, ignoreProtocolHeader: false }
+    option: ParseOption = {
+        skipRepoName: false,
+        ignoreProtocolHeader: false,
+        includeFactory: false,
+    }
 ): Promise<Git3Protocol> {
     if (option.ignoreProtocolHeader) {
         if (!uri.startsWith("git3://")) {
             uri = "git3://" + uri
         }
     }
-    console.error("uri", uri)
     const url = new Url(uri)
     let sender = url.username || "default"
     let chainId = url.port ? parseInt(url.port) : null
@@ -60,12 +75,7 @@ export async function parseGit3URI(
         chainId = chainId || ns.chainId
         // Todo: temporary resolve name service
 
-        let resolverAddress = ns["resolver"]
-        let nsContract = setupContract(
-            new ethers.providers.JsonRpcProvider("https://goerli-rollup.arbitrum.io/rpc"),
-            resolverAddress,
-            abis.NameService
-        )
+        let nsContract = initNameService()
         hubAddress = await nsContract.nameHub([nsName, nsDomain].join("."))
         if (hubAddress == "0x0000000000000000000000000000000000000000")
             throw new Error(`${nsName} not found`)
@@ -97,6 +107,11 @@ export async function parseGit3URI(
     let hub = setupContract(provider, hubAddress, abi, wallet)
     wallet = wallet.connect(hub.provider)
 
+    let factory
+    if (option.includeFactory) {
+        factory = setupContract(provider, netConfig.contracts.factory, abis.Factory, wallet)
+    }
+
     return {
         sender,
         senderAddress,
@@ -110,5 +125,40 @@ export async function parseGit3URI(
         ns,
         nsName,
         nsDomain,
+        factory,
+    }
+}
+export type FactoryProtocol = {
+    factory: ethers.Contract
+    txManager: TxManager
+    netConfig: Record<string, any>
+    chainId: number
+}
+
+export async function initFactoryByChainID(
+    chain: string,
+    wallet: ethers.Wallet | null
+): Promise<FactoryProtocol> {
+    let netConfig, chainId
+    chainId = parseInt(chain)
+    if (chainId) {
+        netConfig = network[chainId]
+    } else {
+        let ns = nameServices[chain]
+        if (!ns) throw new Error(`invalid name service ${chain}`)
+        chainId = ns.chainId
+        netConfig = network[chainId]
+    }
+
+    let rpc = randomRPC(netConfig.rpc)
+    const provider = new ethers.providers.JsonRpcProvider(rpc)
+    let factory = setupContract(provider, netConfig.contracts.factory, abis.Factory, wallet)
+    let txManager = new TxManager(factory, chainId, netConfig.txConst)
+
+    return {
+        factory,
+        txManager,
+        netConfig,
+        chainId,
     }
 }

@@ -1061,6 +1061,11 @@ end-of-stream@^1.1.0, end-of-stream@^1.4.1:
   dependencies:
     once "^1.4.0"
 
+es-main@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/es-main/-/es-main-1.2.0.tgz#b85954f1d9d9f542fcb08685ec19515f969bad16"
+  integrity sha512-A4tCSY43O/mH4rHjG1n0mI4DhK2BmKDr8Lk8PXK/GBB6zxGFGmIW4bbkbTQ2Gi9iNamMZ9vbGrwjZOIeiM7vMw==
+
 esbuild@^0.17.0:
   version "0.17.0"
   resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.17.0.tgz#fcf19373d1d546bdbec1557276284c0e6350380b"
