@@ -42,3 +42,27 @@ export const importActions = [
     },
   }
 ]
+
+export const createHubActions = [
+  {
+    type: 'list',
+    name: 'permissionless',
+    message: 'can anyone join hub?',
+    choices: [
+      'yes',
+      'no',
+    ],
+  },
+]
+
+export const HubMemberActions = [
+  {
+    type: 'list',
+    name: 'role',
+    message: 'add contributor or manager into hub',
+    choices: [
+      'contribotor',
+      'manager',
+    ],
+  },
+]

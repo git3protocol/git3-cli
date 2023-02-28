@@ -67,7 +67,7 @@ export class SLIStorage implements Storage {
             async () => await this.contract.download(Buffer.from(this.repoName), Buffer.from(path)),
             { maxRetry: 10 }
         )
-        const buffer = Buffer.from(res.slice(2), "hex")
+        const buffer = Buffer.from(res[0].slice(2), "hex")
         const cid = buffer.toString("utf8")
         for (let i = 0; i < ipfsConf.gateways.length; i++) {
             let gateway = ipfsConf.gateways[Math.floor(Math.random() * ipfsConf.gateways.length)] //random get rpc
@@ -149,7 +149,7 @@ export class SLIStorage implements Storage {
         let queue = this.batchQueue
         this.batchQueue = []
 
-        console.error(`[${reason}] commit queue length ${queue.length}`)
+        // console.error(`[${reason}] commit queue length ${queue.length}`)
         if (queue.length === 0) return
 
         let err

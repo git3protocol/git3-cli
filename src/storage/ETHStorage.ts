@@ -39,14 +39,70 @@ export class ETHStorage implements Storage {
 
     async upload(path: string, file: Buffer): Promise<Status> {
         try {
-            console.error(`=== uploading file ${path} ===`)
-            await this.txManager.SendCall("upload", [
-                Buffer.from(this.repoName),
-                Buffer.from(path),
-                file,
-            ])
-            console.error(`=== upload ${path} succeed ===`)
+            let chunks: Buffer[] = []
+            let costs: number[] = []
+            const FileChunkSize = 475 * 1024
+            const perEthPayStorageSize = 24 * 1024
+            const initCodeLen = 280
+            if (file.length > FileChunkSize) {
+                let uploadedSize = 0
+                let nouploadfileSize = file.length
+                for (uploadedSize = 0; uploadedSize < file.length; uploadedSize += FileChunkSize) {
+                    let newchunk: Buffer
+                    let cost: number
+                    if (file.length != nouploadfileSize + uploadedSize) {
+                        throw new Error(
+                            `file.length${file.length} != nouploadfileSize${nouploadfileSize} + uploadedSize${uploadedSize}`
+                        )
+                    }
+                    if (nouploadfileSize < FileChunkSize) {
+                        newchunk = Buffer.alloc(nouploadfileSize)
+                        file.copy(newchunk, 0, uploadedSize, file.length)
+                        cost = Math.ceil((nouploadfileSize + initCodeLen) / perEthPayStorageSize)
+                    } else {
+                        newchunk = Buffer.alloc(FileChunkSize)
+                        file.copy(newchunk, 0, uploadedSize, uploadedSize + FileChunkSize)
+                        cost = Math.ceil((FileChunkSize + initCodeLen) / perEthPayStorageSize)
+                        nouploadfileSize -= FileChunkSize
+                    }
+                    chunks.push(newchunk)
+                    costs.push(cost)
+                }
 
+                chunks.forEach(async (context, index) => {
+                    console.error(
+                        `=== uploading file chunk ${path} chunkId-${index} chunk_size:${context.length} storage_cost:${costs[index]}-token===`
+                    )
+                    await this.txManager.SendCall("uploadChunk", [
+                        Buffer.from(this.repoName),
+                        Buffer.from(path),
+                        index,
+                        context,
+                        { value: ethers.utils.parseEther(costs[index].toString()) },
+                    ])
+                    console.error(
+                        `=== upload file chunk ${path} chunkId-${index} chunk_size:${context.length} storage_cost:${costs[index]}-token Succeed===`
+                    )
+                })
+            } else {
+                let cost: number = 0
+                if (file.length > perEthPayStorageSize) {
+                    cost = Math.ceil(file.length / perEthPayStorageSize)
+                }
+
+                console.error(
+                    `=== uploading file ${path} file_size ${file.length} storage_cost:${cost}-token===`
+                )
+                await this.txManager.SendCall("upload", [
+                    Buffer.from(this.repoName),
+                    Buffer.from(path),
+                    file,
+                    { value: ethers.utils.parseEther(cost.toString()) },
+                ])
+                console.error(
+                    `=== upload ${path} file_size ${file.length} storage_cost:${cost}-token succeed ===`
+                )
+            }
             return Status.SUCCEED
         } catch (error: any) {
             this.txManager.CancelAll()

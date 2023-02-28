@@ -3,7 +3,7 @@ import { ethers } from "ethers"
 import { Command } from "commander"
 import bip39 from "bip39"
 import inquirer from "inquirer"
-import { importActions, generateActions } from "./actions.js"
+import { importActions, generateActions,createHubActions,HubMemberActions } from "./actions.js"
 import network from "../config/evm-network.js"
 import { explorerTxUrl, getWallet, randomRPC } from "../common/wallet.js"
 import { initFactoryByChainID, parseGit3URI } from "../common/git3-protocol.js"
@@ -13,10 +13,20 @@ const program = new Command()
 
 program.name("git3").description("git3 mangement tool").version("0.1.0")
 
-program
-    .command("generate")
-    .alias("gen")
-    .alias("new")
+let wallet = program
+    .command("wallet")
+    .description("wallet [create/import/delete/list]")
+
+let hub = program
+    .command("hub")
+    .description("hub [create/join/list/members/add-member/remove-member]")
+
+let repo = program
+    .command("repo")
+    .description("repo [create/members/add-member/remove-member]")
+
+wallet
+    .command("create")
     .description("generate a cryto wallet to use git3")
     .action(() => {
         inquirer.prompt(generateActions).then((answers) => {
@@ -45,9 +55,8 @@ program
         })
     })
 
-program
-    .command("list", { isDefault: true })
-    .alias("ls")
+wallet
+    .command("list")
     .description("list all wallets in user folder ~/.git3/keys")
     .option("-r, --raw", "output raw wallet data with pravate key / mnemonic")
     .action((params) => {
@@ -81,7 +90,7 @@ program
         })
     })
 
-program
+wallet
     .command("import")
     .description("import a wallet from a private key or mnemonic")
     .action(() => {
@@ -102,7 +111,7 @@ program
         })
     })
 
-program
+wallet
     .command("delete")
     .description("delete a wallet")
     .action(() => {
@@ -130,16 +139,46 @@ program
             })
     })
 
-let create = program
-    .command("create")
-    .description("create hub [is_permissionless] OR create repo <uri>")
+wallet
+    .command("info")
+    .argument("[wallet]", "wallet you want to get info", "default")
+    .description("get info of a wallet")
+    .action((wallet) => {
+        let etherWallet = getWallet(wallet)
 
-create
-    .command("hub")
+        const address = etherWallet.address
+
+        console.log(`wallet:  ${wallet}`)
+        console.log(`address: ${address}`)
+
+        for (let [_, net] of Object.entries(network)) {
+            const provider = new ethers.providers.JsonRpcProvider(randomRPC(net.rpc))
+            const balance = provider.getBalance(address)
+            balance.then((res) => {
+                console.log(
+                    `[${net.name}] balance: ${ethers.utils.formatUnits(
+                        res,
+                        net.nativeCurrency.decimals
+                    )} ${net.nativeCurrency.symbol}`
+                )
+            })
+        }
+    })
+
+
+hub
+    .command("create")
     .argument("<chain>", "chain name or chain id")
-    .argument("[is_permissionless]", "true or false", false)
     .description("create a new hub")
-    .action(async (chain, isPermissionless) => {
+    .action(async (chain) => {
+
+
+        let answers = await inquirer.prompt(createHubActions)
+        const {permissionless} = answers
+        let isPermissionless = permissionless === "yes"? true:false
+
+        console.log(`creating hub with permissionless:${isPermissionless}  ...`)
+
         const wallet = await getWallet()
         let protocol = await initFactoryByChainID(chain, wallet)
 
@@ -161,8 +200,163 @@ create
         console.log("hub owner:", events[0].args.creator)
     })
 
-create
-    .command("repo")
+wallet
+    .command("clear")
+    .description("clear pending nonce")
+    .argument("<uri>", "ex: default@git3.w3q")
+    .argument("[num]", "number of pending nonce to clear", 1)
+    .action(async (uri, num) => {
+        if (!uri.startsWith("git3://")) {
+            uri = "git3://" + uri
+        }
+        const protocol = await parseGit3URI(uri, { skipRepoName: true })
+        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
+        let nonce = await protocol.wallet.getTransactionCount()
+        console.log(`current nonce: ${nonce}`)
+        await txManager.clearPendingNonce(num)
+        nonce = await protocol.wallet.getTransactionCount()
+        console.log(`current nonce: ${nonce}`)
+    })
+
+// =============================Hub Commands===================================
+hub
+    .command("join")
+    .argument("<hub>", "hub_name.NS or hub_address:chain_id")
+    .description("join a permissionless hub")
+    .action(async (hub) => {
+        let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
+        let isPermissionless = await protocol.hub.permissionless()
+        if (!isPermissionless) {
+            console.error(`hub ${protocol.hubAddress} is not permissionless`)
+            return
+        }
+        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
+        let receipt = await txManager.SendCall("permissionlessJoin", [])
+        console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
+    })
+
+hub
+    .command("add-member")
+    .argument("<member address>", "member address which will be added to the hub")
+    .option("-u, --uri <uri>", "hub_name.NS or hub_address:chain_id")
+    .description("add a manager/contributor into hub")
+    .action(async (member,options) => {
+
+        let answers = await inquirer.prompt(HubMemberActions)
+        let memberIsManager = answers.role === 'manager' ? true: false
+        let protocol = await parseGit3URI(options.uri, { ignoreProtocolHeader: true, skipRepoName: true })
+
+        if (memberIsManager){
+            let [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(protocol.wallet.address)
+            if (!isAdmin) {
+                let hubName = protocol.ns
+                    ? `${protocol.nsName}.${protocol.nsDomain}`
+                    : protocol.hubAddress
+                console.error(`[addManager] can only be executed with the admin authority of this hub: ${hubName}`)
+                return
+            }
+
+            [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(member)
+            if (isManager) {
+                let hubName = protocol.ns
+                    ? `${protocol.nsName}.${protocol.nsDomain}`
+                    : protocol.hubAddress
+                console.error(`${member} is already a manager to hub: ${hubName}`)
+                return
+            }
+
+            const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
+            let receipt = await txManager.SendCall("addManager", [member])
+            console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
+        }else{
+            let [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(protocol.wallet.address)
+            if (!isManager) {
+                let hubName = protocol.ns
+                    ? `${protocol.nsName}.${protocol.nsDomain}`
+                    : protocol.hubAddress
+                console.error(`[addContributor] can only be executed with the manager authority of this hub: ${hubName}`)
+                return
+            }
+    
+            [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(member)
+            if (isContributor) {
+                let hubName = protocol.ns
+                    ? `${protocol.nsName}.${protocol.nsDomain}`
+                    : protocol.hubAddress
+                console.error(`${member} is already a contributor to hub: ${hubName}`)
+                return
+            }
+            const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
+            let receipt = await txManager.SendCall("addContributor", [member])
+            console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
+        }
+    
+    })
+
+
+
+program
+    .command("removeManager")
+    .argument("<manager address>", "manager address")
+    .option("-u, --uri <uri>", "hub_name.NS or hub_address:chain_id")
+    .description("remove a manager/contributor from hub")
+    .action(async (member,options) => {
+
+        let answers = await inquirer.prompt(HubMemberActions)
+        let memberIsManager = answers.role === 'manager' ? true: false
+        let protocol = await parseGit3URI(options.uri, { ignoreProtocolHeader: true, skipRepoName: true })
+
+        if (memberIsManager){
+            let [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(protocol.wallet.address)
+            if (!isAdmin) {
+                let hubName = protocol.ns
+                    ? `${protocol.nsName}.${protocol.nsDomain}`
+                    : protocol.hubAddress
+                console.error(`[removeManager] can only be executed with the admin authority of this hub: ${hubName}`)
+                return
+            }
+
+            [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(member)
+            if (!isManager) {
+                let hubName = protocol.ns
+                    ? `${protocol.nsName}.${protocol.nsDomain}`
+                    : protocol.hubAddress
+                console.error(`${member} is not a manager to hub: ${hubName}`)
+                return
+            }
+
+            const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
+            let receipt = await txManager.SendCall("removeManager", [member])
+            console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
+        }else{
+            let [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(protocol.wallet.address)
+            if (!isManager) {
+                let hubName = protocol.ns
+                    ? `${protocol.nsName}.${protocol.nsDomain}`
+                    : protocol.hubAddress
+                console.error(`[removeContributor] can only be executed with the manager authority of this hub: ${hubName}`)
+                return
+            }
+
+            [isAdmin,isManager,isContributor] = await protocol.hub.memberRole(member)
+            if (!isContributor) {
+                let hubName = protocol.ns
+                    ? `${protocol.nsName}.${protocol.nsDomain}`
+                    : protocol.hubAddress
+                console.error(`${member} is not a contributor to hub: ${hubName}`)
+                return
+            }
+            const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
+            let receipt = await txManager.SendCall("removeContributor", [member])
+            console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
+        }
+        
+    })
+
+// =============================Repo Commands===================================
+
+repo
+    .command("create")
     .argument("<uri>", "ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
     .description("create a new repo")
     .action(async (uri) => {
@@ -202,160 +396,8 @@ create
         console.log(`repo ${protocol.repoName} created.`)
     })
 
-program
-    .command("join")
-    .argument("<hub>", "hub_name.NS or hub_address:chain_id")
-    .description("join a permissionless hub")
-    .action(async (hub) => {
-        let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
-        let isPermissionless = await protocol.hub.permissionless()
-        if (!isPermissionless) {
-            console.error(`hub ${protocol.hubAddress} is not permissionless`)
-            return
-        }
-        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
-        let receipt = await txManager.SendCall("permissionlessJoin", [])
-        console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
-    })
 
-program
-    .command("addManager")
-    .argument("<hub>", "hub_name.NS or hub_address:chain_id")
-    .argument("<manager address>", "manager address")
-    .description("add a manager into hub")
-    .action(async (hub, managerAddr) => {
-        let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
-        let [isAdmin, isManager, isContributor] = await protocol.hub.memberRole(
-            protocol.wallet.address
-        )
-        if (!isAdmin) {
-            let hubName = protocol.ns
-                ? `${protocol.nsName}.${protocol.nsDomain}`
-                : protocol.hubAddress
-            console.error(
-                `[addManager] can only be executed with the admin authority of this hub: ${hubName}`
-            )
-            return
-        }
-
-        ;[isAdmin, isManager, isContributor] = await protocol.hub.memberRole(managerAddr)
-        if (isManager) {
-            let hubName = protocol.ns
-                ? `${protocol.nsName}.${protocol.nsDomain}`
-                : protocol.hubAddress
-            console.error(`${managerAddr} is already a manager to hub: ${hubName}`)
-            return
-        }
-
-        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
-        let receipt = await txManager.SendCall("addManager", [managerAddr])
-        console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
-    })
-
-program
-    .command("removeManager")
-    .argument("<hub>", "hub_name.NS or hub_address:chain_id")
-    .argument("<manager address>", "manager address")
-    .description("remove a manager from hub")
-    .action(async (hub, managerAddr) => {
-        let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
-        let [isAdmin, isManager, isContributor] = await protocol.hub.memberRole(
-            protocol.wallet.address
-        )
-        if (!isAdmin) {
-            let hubName = protocol.ns
-                ? `${protocol.nsName}.${protocol.nsDomain}`
-                : protocol.hubAddress
-            console.error(
-                `[removeManager] can only be executed with the admin authority of this hub: ${hubName}`
-            )
-            return
-        }
-
-        ;[isAdmin, isManager, isContributor] = await protocol.hub.memberRole(managerAddr)
-        if (!isManager) {
-            let hubName = protocol.ns
-                ? `${protocol.nsName}.${protocol.nsDomain}`
-                : protocol.hubAddress
-            console.error(`${managerAddr} is not a manager to hub: ${hubName}`)
-            return
-        }
-
-        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
-        let receipt = await txManager.SendCall("removeManager", [managerAddr])
-        console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
-    })
-
-program
-    .command("addCon")
-    .argument("<hub>", "hub_name.NS or hub_address:chain_id")
-    .argument("<contributor address>", "contributor address")
-    .description("add a manager into hub")
-    .action(async (hub, contributorAddr) => {
-        let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
-        let [isAdmin, isManager, isContributor] = await protocol.hub.memberRole(
-            protocol.wallet.address
-        )
-        if (!isManager) {
-            let hubName = protocol.ns
-                ? `${protocol.nsName}.${protocol.nsDomain}`
-                : protocol.hubAddress
-            console.error(
-                `[addContributor] can only be executed with the manager authority of this hub: ${hubName}`
-            )
-            return
-        }
-
-        ;[isAdmin, isManager, isContributor] = await protocol.hub.memberRole(contributorAddr)
-        if (isContributor) {
-            let hubName = protocol.ns
-                ? `${protocol.nsName}.${protocol.nsDomain}`
-                : protocol.hubAddress
-            console.error(`${contributorAddr} is already a contributor to hub: ${hubName}`)
-            return
-        }
-        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
-        let receipt = await txManager.SendCall("addContributor", [contributorAddr])
-        console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
-    })
-
-program
-    .command("removeCon")
-    .argument("<hub>", "hub_name.NS or hub_address:chain_id")
-    .argument("<contributor address>", "contributor address")
-    .description("add a manager into hub")
-    .action(async (hub, contributorAddr) => {
-        let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
-        let [isAdmin, isManager, isContributor] = await protocol.hub.memberRole(
-            protocol.wallet.address
-        )
-        if (!isManager) {
-            let hubName = protocol.ns
-                ? `${protocol.nsName}.${protocol.nsDomain}`
-                : protocol.hubAddress
-            console.error(
-                `[removeContributor] can only be executed with the manager authority of this hub: ${hubName}`
-            )
-            return
-        }
-
-        ;[isAdmin, isManager, isContributor] = await protocol.hub.memberRole(contributorAddr)
-        if (!isContributor) {
-            let hubName = protocol.ns
-                ? `${protocol.nsName}.${protocol.nsDomain}`
-                : protocol.hubAddress
-            console.error(`${contributorAddr} is not a contributor to hub: ${hubName}`)
-            return
-        }
-        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
-        let receipt = await txManager.SendCall("removeContributor", [contributorAddr])
-        console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
-    })
-
-// repo funcitons
-let repository = program.command("repository").description("repository related operations")
-
-repository
+repo
     .command("members")
     .argument("<uri>", "ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
     .description("get all members information of the repository")
@@ -367,13 +409,13 @@ repository
         console.log(`owner:${owner} \ncontributors:${contributors}`)
     })
 
-repository
-    .command("addCon")
-    .argument("<uri>", "ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
-    .argument("<con addr>", "contributor address")
+repo
+    .command("add-member")
+    .argument("<con addr>","contributor address")
+    .option("-u, --uri <uri>","ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
     .description("add a contributor into the specified repository")
-    .action(async (uri, conAddr) => {
-        let protocol = await parseGit3URI(uri, { ignoreProtocolHeader: true, skipRepoName: true })
+    .action(async (conAddr,options) => {
+        let protocol = await parseGit3URI(options.uri, { ignoreProtocolHeader: true, skipRepoName: true })
         let owner = await protocol.hub.repoOwner(Buffer.from(protocol.repoName))
         if (owner != protocol.wallet.address) {
             let hubName = protocol.ns
@@ -391,13 +433,14 @@ repository
         console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
     })
 
-repository
-    .command("removeCon")
-    .argument("<uri>", "ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
-    .argument("<con addr>", "contributor address")
+
+repo
+    .command("remove-member")
+    .argument("<con addr>","contributor address")
+    .option("-u, --uri <uri>","ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
     .description("remove a contributor from the specified repository")
-    .action(async (uri, conAddr) => {
-        let protocol = await parseGit3URI(uri, { ignoreProtocolHeader: true, skipRepoName: true })
+    .action(async (conAddr,options) => {
+        let protocol = await parseGit3URI(options.uri, { ignoreProtocolHeader: true, skipRepoName: true })
         let owner = await protocol.hub.repoOwner(Buffer.from(protocol.repoName))
         if (owner != protocol.wallet.address) {
             let hubName = protocol.ns
@@ -415,49 +458,6 @@ repository
         console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
     })
 
-program
-    .command("info")
-    .argument("[wallet]", "wallet you want to get info", "default")
-    .description("get info of a wallet")
-    .action((wallet) => {
-        let etherWallet = getWallet(wallet)
-
-        const address = etherWallet.address
-
-        console.log(`wallet:  ${wallet}`)
-        console.log(`address: ${address}`)
-
-        for (let [_, net] of Object.entries(network)) {
-            const provider = new ethers.providers.JsonRpcProvider(randomRPC(net.rpc))
-            const balance = provider.getBalance(address)
-            balance.then((res) => {
-                console.log(
-                    `[${net.name}] balance: ${ethers.utils.formatUnits(
-                        res,
-                        net.nativeCurrency.decimals
-                    )} ${net.nativeCurrency.symbol}`
-                )
-            })
-        }
-    })
-
-program
-    .command("clear")
-    .description("clear pending nonce")
-    .argument("<uri>", "ex: default@git3.w3q")
-    .argument("[num]", "number of pending nonce to clear", 1)
-    .action(async (uri, num) => {
-        if (!uri.startsWith("git3://")) {
-            uri = "git3://" + uri
-        }
-        const protocol = await parseGit3URI(uri, { skipRepoName: true })
-        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
-        let nonce = await protocol.wallet.getTransactionCount()
-        console.log(`current nonce: ${nonce}`)
-        await txManager.clearPendingNonce(num)
-        nonce = await protocol.wallet.getTransactionCount()
-        console.log(`current nonce: ${nonce}`)
-    })
 
 // Todo: set-wallet temporarily useless
 // program

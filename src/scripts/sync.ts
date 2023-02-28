@@ -133,8 +133,8 @@ async function syncHub(hubAddr: string, start: number) {
             }
         },
         (event) => {
-            let repoName = Buffer.from(event.args!.repoName).toString()
-            console.log("repo:", repoName)
+            let repoName = Buffer.from(event.args!.repoName.slice(2), "hex").toString()
+            console.log("repo:", hubAddr, repoName)
             mirrorRepo(hubAddr, repoName)
         },
         () => {
