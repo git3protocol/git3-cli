@@ -51,15 +51,11 @@ export class SLIStorage implements Storage {
         })
     }
 
-    async repoRoles(): Promise<string[]> {
-        let owner = await this.contract.repoOwner(Buffer.from(this.repoName))
-        if (owner === ethers.constants.AddressZero) return []
-        return [owner]
-    }
 
     async hasPermission(ref: string): Promise<boolean> {
-        let member = await this.repoRoles()
-        return member.indexOf(await this.wallet.getAddress()) >= 0
+        let sender = await this.wallet.getAddress()
+        let isMember = await this.contract.isRepoMembership(Buffer.from(this.repoName),sender)
+        return isMember
     }
 
     async download(path: string): Promise<[Status, Buffer]> {
