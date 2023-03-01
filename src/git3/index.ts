@@ -5,11 +5,9 @@ import bip39 from "bip39"
 import inquirer from "inquirer"
 import { importActions, generateActions,createHubActions,HubMemberActions } from "./actions.js"
 import network from "../config/evm-network.js"
-import { explorerTxUrl, getWallet, randomRPC, setupContract } from "../common/wallet.js"
-import { parseGit3URI } from "../common/git3-protocol.js"
+import { explorerTxUrl, getWallet, randomRPC } from "../common/wallet.js"
+import { initFactoryByChainID, parseGit3URI } from "../common/git3-protocol.js"
 import { TxManager } from "../common/tx-manager.js"
-import nameServices from "../config/name-services.js"
-import abis from "../config/abis.js"
 
 const program = new Command()
 
@@ -180,31 +178,18 @@ hub
         let isPermissionless = permissionless === "yes"? true:false
 
         console.log(`creating hub with permissionless:${isPermissionless}  ...`)
-        let netConfig, chainId
-        chainId = parseInt(chain)
-        if (chainId) {
-            netConfig = network[chainId]
-        } else {
-            let ns = nameServices[chain]
-            if (!ns) throw new Error(`invalid name service ${chain}`)
-            chainId = ns.chainId
-            netConfig = network[chainId]
-        }
 
         const wallet = await getWallet()
-        let rpc = randomRPC(netConfig.rpc)
-        const provider = new ethers.providers.JsonRpcProvider(rpc)
+        let protocol = await initFactoryByChainID(chain, wallet)
 
-        let factory = setupContract(provider, netConfig.contracts.factory, abis.Factory, wallet)
-        let txManager = new TxManager(factory, chainId, netConfig.txConst)
-        let receipt = await txManager.SendCall("createHub", [isPermissionless])
+        let receipt = await protocol.txManager.SendCall("createHub", [isPermissionless])
         // let CreateHubEvent = factory.interface.getEvent("CreateHub");
-        console.log(explorerTxUrl(receipt.transactionHash, netConfig.explorers))
+        console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
 
         let events = receipt.logs
             .map((log: any) => {
                 try {
-                    return factory.interface.parseLog(log)
+                    return protocol.factory.interface.parseLog(log)
                 } catch (e) {
                     return null
                 }
@@ -420,7 +405,7 @@ repo
 
 repo
     .command("members")
-    .argument("<uri>","ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
+    .argument("<uri>", "ex: git3.w3q/repo_name or hub_addr:chainid/repo_name")
     .description("get all members information of the repository")
     .action(async (uri) => {
         let protocol = await parseGit3URI(uri, { ignoreProtocolHeader: true, skipRepoName: true })
@@ -438,16 +423,22 @@ repo
     .action(async (conAddr,options) => {
         let protocol = await parseGit3URI(options.uri, { ignoreProtocolHeader: true, skipRepoName: true })
         let owner = await protocol.hub.repoOwner(Buffer.from(protocol.repoName))
-        if (owner != protocol.wallet.address){
+        if (owner != protocol.wallet.address) {
             let hubName = protocol.ns
                 ? `${protocol.nsName}.${protocol.nsDomain}`
                 : protocol.hubAddress
-            console.error(`[repo addContributor] can only be executed with the owner authority of this repository:${protocol.repoName}-hub:${hubName}`)
+            console.error(
+                `[repo addContributor] can only be executed with the owner authority of this repository:${protocol.repoName}-hub:${hubName}`
+            )
         }
         const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
-        let receipt = await txManager.SendCall("addRepoContributor", [Buffer.from(protocol.repoName),conAddr])
+        let receipt = await txManager.SendCall("addRepoContributor", [
+            Buffer.from(protocol.repoName),
+            conAddr,
+        ])
         console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
     })
+
 
 repo
     .command("remove-member")
@@ -457,16 +448,22 @@ repo
     .action(async (conAddr,options) => {
         let protocol = await parseGit3URI(options.uri, { ignoreProtocolHeader: true, skipRepoName: true })
         let owner = await protocol.hub.repoOwner(Buffer.from(protocol.repoName))
-        if (owner != protocol.wallet.address){
+        if (owner != protocol.wallet.address) {
             let hubName = protocol.ns
                 ? `${protocol.nsName}.${protocol.nsDomain}`
                 : protocol.hubAddress
-            console.error(`[repository removeContributor] can only be executed with the owner authority of this repository:${protocol.repoName}-hub:${hubName}`)
+            console.error(
+                `[repository removeContributor] can only be executed with the owner authority of this repository:${protocol.repoName}-hub:${hubName}`
+            )
         }
         const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
-        let receipt = await txManager.SendCall("removeRepoContributor", [Buffer.from(protocol.repoName),conAddr])
+        let receipt = await txManager.SendCall("removeRepoContributor", [
+            Buffer.from(protocol.repoName),
+            conAddr,
+        ])
         console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
     })
+
 
 // Todo: set-wallet temporarily useless
 // program
