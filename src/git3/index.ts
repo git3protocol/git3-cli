@@ -3,7 +3,7 @@ import { ethers } from "ethers"
 import { Command } from "commander"
 import bip39 from "bip39"
 import inquirer from "inquirer"
-import { importActions, generateActions,createHubActions,HubMemberActions } from "./actions.js"
+import { importActions, generateActions,createHubActions,HubMemberActions,HubGetMemberActions } from "./actions.js"
 import network from "../config/evm-network.js"
 import { explorerTxUrl, getWallet, randomRPC } from "../common/wallet.js"
 import { initFactoryByChainID, parseGit3URI } from "../common/git3-protocol.js"
@@ -165,7 +165,25 @@ wallet
         }
     })
 
+wallet
+    .command("clear")
+    .description("clear pending nonce")
+    .argument("<uri>", "ex: default@git3.w3q")
+    .argument("[num]", "number of pending nonce to clear", 1)
+    .action(async (uri, num) => {
+        if (!uri.startsWith("git3://")) {
+            uri = "git3://" + uri
+        }
+        const protocol = await parseGit3URI(uri, { skipRepoName: true })
+        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
+        let nonce = await protocol.wallet.getTransactionCount()
+        console.log(`current nonce: ${nonce}`)
+        await txManager.clearPendingNonce(num)
+        nonce = await protocol.wallet.getTransactionCount()
+        console.log(`current nonce: ${nonce}`)
+    })
 
+// =============================Hub Commands===================================
 hub
     .command("create")
     .argument("<chain>", "chain name or chain id")
@@ -200,25 +218,6 @@ hub
         console.log("hub owner:", events[0].args.creator)
     })
 
-wallet
-    .command("clear")
-    .description("clear pending nonce")
-    .argument("<uri>", "ex: default@git3.w3q")
-    .argument("[num]", "number of pending nonce to clear", 1)
-    .action(async (uri, num) => {
-        if (!uri.startsWith("git3://")) {
-            uri = "git3://" + uri
-        }
-        const protocol = await parseGit3URI(uri, { skipRepoName: true })
-        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
-        let nonce = await protocol.wallet.getTransactionCount()
-        console.log(`current nonce: ${nonce}`)
-        await txManager.clearPendingNonce(num)
-        nonce = await protocol.wallet.getTransactionCount()
-        console.log(`current nonce: ${nonce}`)
-    })
-
-// =============================Hub Commands===================================
 hub
     .command("join")
     .argument("<hub>", "hub_name.NS or hub_address:chain_id")
@@ -234,6 +233,40 @@ hub
         let receipt = await txManager.SendCall("permissionlessJoin", [])
         console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
     })
+
+hub
+    .command("getMembers")
+    .argument("<hub>", "hub_name.NS or hub_address:chain_id")
+    .description("get members corresponding to the role from hub")
+    .action(async (hub) => {
+        let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
+        let answers = await inquirer.prompt(HubGetMemberActions)
+        let role:string = "0x0000000000000000000000000000000000000000000000000000000000000000";
+        switch (answers.role) {
+            case "admin":
+                role = "0x0000000000000000000000000000000000000000000000000000000000000000"
+            case "manager":
+                role = "0x0000000000000000000000000000000000000000000000000000000000000001"
+            case "contributor":
+                role = "0x0000000000000000000000000000000000000000000000000000000000000002"
+        }
+
+        let members = await protocol.hub.getMembersByRole(role)
+        console.error(`${answers.role} : ${members}`)
+    })
+
+hub
+    .command("getAllMembers")
+    .argument("<hub>", "hub_name.NS or hub_address:chain_id")
+    .description("get all members from hub")
+    .action(async (hub) => {
+        let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
+        let [admins, managers ,cons] = await protocol.hub.getAllMembers()
+        console.error(`admins : ${admins}`)
+        console.error(`managers : ${managers}`)
+        console.error(`contributors : ${cons}`)
+    })
+
 
 hub
     .command("add-member")

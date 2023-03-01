@@ -66,3 +66,16 @@ export const HubMemberActions = [
     ],
   },
 ]
+
+export const HubGetMemberActions = [
+  {
+    type: 'list',
+    name: 'role',
+    message: 'get members corresponding to the role',
+    choices: [
+      'admin',
+      'contribotor',
+      'manager',
+    ],
+  },
+]
