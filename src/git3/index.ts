@@ -235,7 +235,7 @@ hub
     })
 
 hub
-    .command("getMembers")
+    .command("members")
     .argument("<hub>", "hub_name.NS or hub_address:chain_id")
     .description("get members corresponding to the role from hub")
     .action(async (hub) => {
@@ -256,7 +256,7 @@ hub
     })
 
 hub
-    .command("getAllMembers")
+    .command("allMembers")
     .argument("<hub>", "hub_name.NS or hub_address:chain_id")
     .description("get all members from hub")
     .action(async (hub) => {
