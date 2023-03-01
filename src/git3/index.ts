@@ -431,8 +431,8 @@ repo
                 console.error(
                     `this hub is not permissionless, you can ask the hub owner to add you as a member`
                 )
+                return
             }
-            return
         }
 
         let owner = await protocol.hub.repoOwner(Buffer.from(protocol.repoName))

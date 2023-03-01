@@ -89,7 +89,7 @@ const evmNetworks: Record<number, any> = {
         txConst: {
             blockTimeSec: 7,
         },
-        contracts: { factory: "0xb017657470B3ceB2798aC6f1E9186Bce3CaDdcf4" },
+        contracts: { factory: "0xF914D7A5a36a23e9Ef112e15Dc37311427068C43" },
     },
     421613: {
         name: "Arbitrum - Goerli",
