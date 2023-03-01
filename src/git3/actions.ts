@@ -61,7 +61,7 @@ export const HubMemberActions = [
     name: 'role',
     message: 'add contributor or manager into hub',
     choices: [
-      'contribotor',
+      'contributor',
       'manager',
     ],
   },
@@ -74,7 +74,7 @@ export const HubGetMemberActions = [
     message: 'get members corresponding to the role',
     choices: [
       'admin',
-      'contribotor',
+      'contributor',
       'manager',
     ],
   },

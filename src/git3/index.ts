@@ -242,14 +242,18 @@ hub
         let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
         let answers = await inquirer.prompt(HubGetMemberActions)
         let role:string = "0x0000000000000000000000000000000000000000000000000000000000000000";
-        switch (answers.role) {
-            case "admin":
-                role = "0x0000000000000000000000000000000000000000000000000000000000000000"
-            case "manager":
-                role = "0x0000000000000000000000000000000000000000000000000000000000000001"
-            case "contributor":
-                role = "0x0000000000000000000000000000000000000000000000000000000000000002"
+        
+        if (answers.role == "admin") {
+            role = "0x0000000000000000000000000000000000000000000000000000000000000000"
+        }else if (answers.role == "manager") {
+            role = "0x0000000000000000000000000000000000000000000000000000000000000001"
+        }else if (answers.role == "contributor") {
+            role = "0x0000000000000000000000000000000000000000000000000000000000000002"
+        }else {
+            throw new Error(`Invalid role ${answers.role}`)
         }
+            
+        console.error(`role:${role}`)
 
         let members = await protocol.hub.getMembersByRole(role)
         console.error(`${answers.role} : ${members}`)
@@ -387,6 +391,16 @@ hub
     })
 
 // =============================Repo Commands===================================
+
+repo
+    .command("list")
+    .argument("<hub>", "hub_name.NS or hub_address:chain_id")
+    .description("get all members from hub")
+    .action(async (hub) => {
+        let protocol = await parseGit3URI(hub, { ignoreProtocolHeader: true, skipRepoName: true })
+        let repos = await protocol.hub.repoList()
+        console.error(`repos : ${repos}`)
+    })
 
 repo
     .command("create")
