@@ -310,8 +310,8 @@ hub
 
 
 
-program
-    .command("removeManager")
+hub
+    .command("remove-member")
     .argument("<manager address>", "manager address")
     .option("-u, --uri <uri>", "hub_name.NS or hub_address:chain_id")
     .description("remove a manager/contributor from hub")
