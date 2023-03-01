@@ -376,6 +376,7 @@ repo
     .description("create a new repo")
     .action(async (uri) => {
         const protocol = await parseGit3URI(uri, { ignoreProtocolHeader: true })
+        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
 
         let isMember = await protocol.hub.membership(protocol.wallet.address)
         if (!isMember) {
@@ -385,9 +386,15 @@ repo
             console.error(`you are not a member of this hub: ${hubName}`)
             let isPermissionless = await protocol.hub.permissionless()
             if (isPermissionless) {
+                
                 console.error(
-                    `this hub is permissionless, you can join it with: git3 join ${hubName}`
+                    `this hub is permissionless, you are joining this hub ${hubName}`
                 )
+                
+                let rec = await txManager.SendCall("permissionlessJoin",[])
+
+                console.log(explorerTxUrl(rec.transactionHash, protocol.netConfig.explorers))
+                console.log(`already joined hub: ${hubName}`)
             } else {
                 console.error(
                     `this hub is not permissionless, you can ask the hub owner to add you as a member`
@@ -404,7 +411,6 @@ repo
         }
 
         console.log(`creating repo ${protocol.repoName} on ${protocol.netConfig.name}...`)
-        const txManager = new TxManager(protocol.hub, protocol.chainId, protocol.netConfig.txConst)
         let receipt = await txManager.SendCall("createRepo", [Buffer.from(protocol.repoName)])
 
         console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
