@@ -167,23 +167,31 @@ async function syncHub(hubAddr: string, start: number) {
 
 async function mirrorRepo(hubAddr: string, repoName: string) {
     let uri = `git3://${hubAddr}/${repoName}`
-    let res = await api.post("/repos/migrate", {
-        clone_addr: uri,
-        mirror: true,
-        mirror_interval: "1h",
-        private: false,
-        repo_name: repoName,
-        repo_owner: hubAddr,
-        service: "git",
-        uid: 0,
-    })
-    console.log("mirrorRepo", uri, res.status)
+    try {
+        let res = await api.post("/repos/migrate", {
+            clone_addr: uri,
+            mirror: true,
+            mirror_interval: "1h",
+            private: false,
+            repo_name: repoName,
+            repo_owner: hubAddr,
+            service: "git",
+            uid: 0,
+        })
+        console.log("mirrorRepo", uri, res.status)
+    } catch (e) {
+        console.error("mirrorRepo", e)
+    }
 }
 
 async function pullRepo(hubAddr: string, repoName: string) {
     let uri = `git3://${hubAddr}/${repoName}`
-    let res = await api.post(`/repos/${hubAddr}/${repoName}/mirror-sync`)
-    console.log("pullRepo", uri, res.status)
+    try {
+        let res = await api.post(`/repos/${hubAddr}/${repoName}/mirror-sync`)
+        console.log("pullRepo", uri, res.status)
+    } catch (e) {
+        console.error("pullRepo", e)
+    }
 }
 
 async function migrateHub(oldHubAddr: string, newHubAddr: string) {
