@@ -1,22 +1,18 @@
-# Install
+# Git3 Command Line Tool
+
+## Install
 
 ```
 yarn
 ```
 
-# pkg
-
-```
-yarn pkg
-```
-
-# mac install
+## mac install
 
 ```
 yarn install-mac
 ```
 
-# Git3 URI Protocol
+## Git3 URI Protocol
 
 ```
 git3://[sender_wallet]@[hub_contract_address or NS]:[chain_id]/<repo_name>
@@ -28,8 +24,9 @@ git3://[sender_wallet]@[hub_contract_address or NS]:[chain_id]/<repo_name>
 - <repo_name> Required, your repo name
 
 ## Example:
-- `git3://helloworld@git3.fvm/helloworld`  
-select `default` wallet, `git3 official hub contract` address, on FVM chainId: 3141, repo name is `helloworld`
+- `git3://git3.w3q/helloworld`
+select `default` wallet, `git3 official hub contract` address, on EthStorage w3q network, repo name is 
+`helloworld`
 
 - `git3://myname.eth@git3hub.eth/helloworld`  
 select `myname.eth` wallet, `git3hub.eth` hub contract address, on ETH Mainnet chainId: 1, repo name is `helloworld`
