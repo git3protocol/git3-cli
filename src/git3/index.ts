@@ -71,6 +71,7 @@ wallet
         }
 
         wallets.forEach((file) => {
+            if (file.startsWith(".")) return
             const content = readFileSync(`${keyPath}/${file}`).toString()
 
             if (params.raw) {
@@ -281,9 +282,7 @@ hub.command("add-member")
         })
 
         if (memberIsManager) {
-            let [isAdmin, isManager, isContributor] = await protocol.hub.memberRole(
-                protocol.wallet.address
-            )
+            let [isAdmin, isManager, _] = await protocol.hub.memberRole(protocol.wallet.address)
             if (!isAdmin) {
                 let hubName = protocol.ns
                     ? `${protocol.nsName}.${protocol.nsDomain}`
@@ -294,7 +293,7 @@ hub.command("add-member")
                 return
             }
 
-            ;[isAdmin, isManager, isContributor] = await protocol.hub.memberRole(member)
+            ;[isAdmin, isManager, _] = await protocol.hub.memberRole(member)
             if (isManager) {
                 let hubName = protocol.ns
                     ? `${protocol.nsName}.${protocol.nsDomain}`
@@ -311,7 +310,7 @@ hub.command("add-member")
             let receipt = await txManager.SendCall("addManager", [member])
             console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
         } else {
-            let [isAdmin, isManager, isContributor] = await protocol.hub.memberRole(
+            let [_, isManager, isContributor] = await protocol.hub.memberRole(
                 protocol.wallet.address
             )
             if (!isManager) {
@@ -324,7 +323,7 @@ hub.command("add-member")
                 return
             }
 
-            ;[isAdmin, isManager, isContributor] = await protocol.hub.memberRole(member)
+            ;[_, isManager, isContributor] = await protocol.hub.memberRole(member)
             if (isContributor) {
                 let hubName = protocol.ns
                     ? `${protocol.nsName}.${protocol.nsDomain}`
@@ -355,9 +354,7 @@ hub.command("remove-member")
         })
 
         if (memberIsManager) {
-            let [isAdmin, isManager, isContributor] = await protocol.hub.memberRole(
-                protocol.wallet.address
-            )
+            let [isAdmin, isManager, _] = await protocol.hub.memberRole(protocol.wallet.address)
             if (!isAdmin) {
                 let hubName = protocol.ns
                     ? `${protocol.nsName}.${protocol.nsDomain}`
@@ -367,8 +364,7 @@ hub.command("remove-member")
                 )
                 return
             }
-
-            ;[isAdmin, isManager, isContributor] = await protocol.hub.memberRole(member)
+            ;[isAdmin, isManager, _] = await protocol.hub.memberRole(member)
             if (!isManager) {
                 let hubName = protocol.ns
                     ? `${protocol.nsName}.${protocol.nsDomain}`
@@ -385,7 +381,7 @@ hub.command("remove-member")
             let receipt = await txManager.SendCall("removeManager", [member])
             console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
         } else {
-            let [isAdmin, isManager, isContributor] = await protocol.hub.memberRole(
+            let [_, isManager, isContributor] = await protocol.hub.memberRole(
                 protocol.wallet.address
             )
             if (!isManager) {
@@ -398,7 +394,7 @@ hub.command("remove-member")
                 return
             }
 
-            ;[isAdmin, isManager, isContributor] = await protocol.hub.memberRole(member)
+            ;[_, isManager, isContributor] = await protocol.hub.memberRole(member)
             if (!isContributor) {
                 let hubName = protocol.ns
                     ? `${protocol.nsName}.${protocol.nsDomain}`
@@ -467,7 +463,8 @@ repo.command("create")
         let receipt = await txManager.SendCall("createRepo", [Buffer.from(protocol.repoName)])
 
         console.log(explorerTxUrl(receipt.transactionHash, protocol.netConfig.explorers))
-        console.log(`repo ${protocol.repoName} created.`)
+        console.log(`Repo ${protocol.repoName} created.`)
+        console.log(`Now you can use the url of this repo: ${protocol.url.toString()}`)
     })
 
 repo.command("members")

@@ -7,8 +7,10 @@ import Url from "url-parse"
 import network from "../config/evm-network.js"
 import abis from "../config/abis.js"
 import { TxManager } from "./tx-manager.js"
+import URLParse from "url-parse"
 
 export type Git3Protocol = {
+    url: URLParse<string>
     sender: string
     senderAddress: string
     hubAddress: string
@@ -113,6 +115,7 @@ export async function parseGit3URI(
     }
 
     return {
+        url,
         sender,
         senderAddress,
         hubAddress,

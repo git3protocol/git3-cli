@@ -88,6 +88,8 @@ const evmNetworks: Record<number, any> = {
         ],
         txConst: {
             blockTimeSec: 7,
+            rbfTimes: 5,
+            boardcastTimes: 15,
         },
         contracts: { factory: "0x96f7849C6D0EB09024e482Cc9c249096e3368a16" },
     },
