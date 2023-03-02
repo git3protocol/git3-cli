@@ -43,7 +43,7 @@ main() {
     echo ""
     
     echo "Run 'git3 --help' to get started."
-    echo "Run 'git remote add origin git3://<repo>' to add a git3 remote."
+    echo "Run 'git remote add origin git3://<hub>/<repo>' to add a git3 remote."
 
 }
 
