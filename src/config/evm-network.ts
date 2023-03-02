@@ -93,8 +93,31 @@ const evmNetworks: Record<number, any> = {
         },
         contracts: { factory: "0x96f7849C6D0EB09024e482Cc9c249096e3368a16" },
     },
+    42170: {
+        name: "Arbitrum Nova",
+        nativeCurrency: {
+            name: "Ether",
+            symbol: "ETH",
+            decimals: 18,
+        },
+        rpc: ["https://nova.arbitrum.io/rpc"],
+        explorers: [
+            {
+                name: "Arbitrum Nova Chain Explorer",
+                url: "https://nova-explorer.arbitrum.io",
+                icon: "blockscout",
+                standard: "EIP3091",
+            },
+        ],
+        txConst: {
+            blockTimeSec: 3,
+            rbfTimes: 5,
+            boardcastTimes: 10,
+        },
+        contracts: { factory: "0x6B7315a594263A886e8DecE2FfCB7b37cab0941b" },
+    },
     421613: {
-        name: "Arbitrum - Goerli",
+        name: "Arbitrum Goerli",
         nativeCurrency: {
             name: "Arbitrum Ether",
             symbol: "ETH",

@@ -51,10 +51,9 @@ export class SLIStorage implements Storage {
         })
     }
 
-
     async hasPermission(ref: string): Promise<boolean> {
         let sender = await this.wallet.getAddress()
-        let isMember = await this.contract.isRepoMembership(Buffer.from(this.repoName),sender)
+        let isMember = await this.contract.isRepoMembership(Buffer.from(this.repoName), sender)
         return isMember
     }
 
@@ -173,7 +172,10 @@ export class SLIStorage implements Storage {
     }
 
     async listRefs(): Promise<Ref[]> {
-        const res: string[][] = await this.contract.listRepoRefs(Buffer.from(this.repoName))
+        const res: string[][] = await Retrier(
+            async () => await this.contract.listRepoRefs(Buffer.from(this.repoName)),
+            { maxRetry: 3 }
+        )
         let refs = res.map((i) => ({
             ref: Buffer.from(i[1].slice(2), "hex")
                 .toString("utf8")

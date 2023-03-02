@@ -39,6 +39,10 @@ function loadCache() {
                     start: 9623490,
                     last: 9623490,
                 },
+                42170: {
+                    start: 2699199,
+                    last: 2699199,
+                },
             },
             hubs: {},
             ns: {

@@ -2,6 +2,7 @@ import { Ref, Status, Storage } from "./storage.js"
 import { ethers } from "ethers"
 import { TxManager } from "../common/tx-manager.js"
 import { Git3Protocol } from "../common/git3-protocol.js"
+import { Retrier } from "../common/queue-task.js"
 
 export class ETHStorage implements Storage {
     repoName: string
@@ -21,12 +22,15 @@ export class ETHStorage implements Storage {
 
     async hasPermission(ref: string): Promise<boolean> {
         let sender = await this.wallet.getAddress()
-        let isMember = await this.contract.isRepoMembership(Buffer.from(this.repoName),sender)
+        let isMember = await this.contract.isRepoMembership(Buffer.from(this.repoName), sender)
         return isMember
     }
 
     async download(path: string): Promise<[Status, Buffer]> {
-        const res = await this.contract.download(Buffer.from(this.repoName), Buffer.from(path))
+        const res = await Retrier(
+            async () => await this.contract.download(Buffer.from(this.repoName), Buffer.from(path)),
+            { maxRetry: 10 }
+        )
         const buffer = Buffer.from(res[0].slice(2), "hex")
         console.error(`=== download file ${path} succeed ===`)
         return [Status.SUCCEED, buffer]
@@ -111,7 +115,10 @@ export class ETHStorage implements Storage {
     }
 
     async listRefs(): Promise<Ref[]> {
-        const res: string[][] = await this.contract.listRepoRefs(Buffer.from(this.repoName))
+        const res: string[][] = await Retrier(
+            async () => await this.contract.listRepoRefs(Buffer.from(this.repoName)),
+            { maxRetry: 3 }
+        )
         let refs = res.map((i) => ({
             ref: Buffer.from(i[1].slice(2), "hex")
                 .toString("utf8")
