@@ -98,7 +98,7 @@ class Git {
                 GitUtils.writeObject("tree", Buffer.from(""))
             }
             if (!GitUtils.historyExists(oid)) {
-                log("missing part of history from", oid)
+                // log("missing part of history from", oid)
                 for (let sha of GitUtils.referencedObjects(oid)) {
                     fetching.push(this.fetch(sha))
                 }

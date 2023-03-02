@@ -75,14 +75,18 @@ async function eventIterator(
 
     while (true) {
         if (stop && stop()) break
-        let lastBlock = await Retrier(async () => await provider.getBlockNumber(), { maxRetry: 10 })
+        let lastBlock = await Retrier(async () => await provider.getBlockNumber(), {
+            maxRetry: 20,
+            retryInterval: 1000,
+        })
         for (let i = last; i < lastBlock; i += RANGE) {
             let end = i + RANGE - 1
             if (end >= lastBlock) end = lastBlock - 1
             console.log(i, end)
             for (const filter of filters) {
                 let events = await Retrier(async () => await contract.queryFilter(filter, i, end), {
-                    maxRetry: 10,
+                    maxRetry: 20,
+                    retryInterval: 1000,
                 })
                 for (const event of events) {
                     await eventCallback(event)
