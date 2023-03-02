@@ -103,7 +103,7 @@ class Git {
                     fetching.push(this.fetch(sha))
                 }
             } else {
-                log("already downloaded", oid)
+                // log("already downloaded", oid)
             }
         } else {
             let error = await this.download(oid)
