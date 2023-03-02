@@ -1,5 +1,5 @@
 const ns: Record<string, any> = {
-    resolver_: "0xd684DBf9124d6B1f74f37558dD11fdcE0103AF15",
+    resolver_: "0xE7273B5fd932B525e80Ca1c72381fA6e352C7262",
     w3q: {
         chainId: 3334,
     },
