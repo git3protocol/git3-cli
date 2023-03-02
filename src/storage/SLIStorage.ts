@@ -5,7 +5,7 @@ import ipfsConf from "../config/ipfs.js"
 import axios from "axios"
 import { Git3Protocol } from "../common/git3-protocol.js"
 import { QueueTask, Retrier } from "../common/queue-task.js"
-
+import https from "https"
 export class SLIStorage implements Storage {
     repoName: string
     wallet: ethers.Wallet
@@ -65,13 +65,15 @@ export class SLIStorage implements Storage {
         const buffer = Buffer.from(res[0].slice(2), "hex")
         const cid = buffer.toString("utf8")
         for (let i = 0; i < ipfsConf.gateways.length; i++) {
-            let gateway = ipfsConf.gateways[Math.floor(Math.random() * ipfsConf.gateways.length)] //random get rpc
+            let gateway = ipfsConf.gateways[i] // don't random, try every gateway
             try {
                 let resault = await Retrier(
                     async () => {
-                        const TIMEOUT = 15
-                        let response = await axios.get(gateway + cid, {
+                        const TIMEOUT = 3
+                        const CONNECT_TIMEOUT = 3
+                        let response = await axios.get(gateway.replace("{cid}", cid), {
                             responseType: "arraybuffer",
+                            httpsAgent: new https.Agent({ timeout: CONNECT_TIMEOUT * 1000 }),
                             timeout: TIMEOUT * 1000,
                         })
                         if (response.status === 200) {
@@ -83,8 +85,9 @@ export class SLIStorage implements Storage {
                     { maxRetry: 3 }
                 )
                 return [Status.SUCCEED, resault]
-            } catch (e) {
+            } catch (e: any) {
                 //pass
+                // console.error("download err:", e.message, gateway.replace("{cid}", cid))
             }
         }
 

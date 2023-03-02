@@ -11,6 +11,7 @@ class Git {
     refs: Map<string, string> = new Map()
     pushed: Map<string, string> = new Map()
     head: string | null
+    fetchPending: Map<string, number> = new Map()
 
     constructor(info: ApiBaseParams, storage: Storage) {
         this.gitdir = info.gitdir
@@ -92,6 +93,13 @@ class Git {
     }
 
     async fetch(oid: string) {
+        if (this.fetchPending.has(oid)) {
+            let cnt = this.fetchPending.get(oid)!
+            this.fetchPending.set(oid, cnt + 1)
+            return
+        }
+        this.fetchPending.set(oid, 1)
+
         let fetching: Promise<void>[] = []
         if (GitUtils.objectExists(oid)) {
             if (oid == GitUtils.EMPTY_TREE_HASH) {
@@ -112,10 +120,12 @@ class Git {
                     fetching.push(this.fetch(sha))
                 }
             } else {
-                fetching.push(this.fetch(oid))
+                throw error
+                //fetching.push(this.fetch(oid))
             }
         }
         await Promise.all(fetching)
+        this.fetchPending.set(oid, 0)
     }
 
     async download(sha: string): Promise<Error | null> {
