@@ -15,7 +15,7 @@
         "colors-cli": "^1.0.29",
         "commander": "^10.0.0",
         "debug": "^4.3.4",
-        "eth-ens-namehash": "git+git3://playground.w3q/eth-ens-namehash",
+        "eth-ens-namehash": "2.0.8",
         "ethers": "^5.7.2",
         "form-data": "^4.0.0",
         "git-config-path": "^2.0.0",
