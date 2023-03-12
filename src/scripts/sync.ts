@@ -25,7 +25,7 @@ export let api = axios.create({
     },
 })
 
-function loadCache() {
+export function loadCache() {
     existsSync("./cache.json") || writeFileSync("./cache.json", "")
     let text = readFileSync("./cache.json").toString()
     if (text == "") {
@@ -57,13 +57,13 @@ function loadCache() {
     }
 }
 
-function saveCache(cache: any) {
+export function saveCache(cache: any) {
     writeFileSync("./cache.json", JSON.stringify(cache))
 }
 const RANGE = 1000
 const WAIT_SECONDS = 10
 
-async function eventIterator(
+export async function eventIterator(
     contract: ethers.Contract,
     filters: any[],
     last: number,
@@ -101,7 +101,7 @@ async function eventIterator(
     }
 }
 
-async function syncFactory(protocol: FactoryProtocol) {
+export async function syncFactory(protocol: FactoryProtocol) {
     let factory = protocol.factory
     let last = cache.factory[protocol.chainId].last
     console.log("syncFactory", protocol.chainId, last)
@@ -127,11 +127,11 @@ async function syncFactory(protocol: FactoryProtocol) {
     )
 }
 
-function Hex0xToStr(hex0x: string) {
+export function Hex0xToStr(hex0x: string) {
     return Buffer.from(hex0x.slice(2), "hex").toString()
 }
 
-async function syncHub(hubAddr: string, start: number) {
+export async function syncHub(hubAddr: string, start: number) {
     if (start > 0) {
         cache.hubs[hubAddr] = { start, last: start }
     }
@@ -165,7 +165,7 @@ async function syncHub(hubAddr: string, start: number) {
     )
 }
 
-async function mirrorRepo(hubAddr: string, repoName: string) {
+export async function mirrorRepo(hubAddr: string, repoName: string) {
     let uri = `git3://${hubAddr}/${repoName}`
     try {
         let res = await api.post("/repos/migrate", {
@@ -184,7 +184,7 @@ async function mirrorRepo(hubAddr: string, repoName: string) {
     }
 }
 
-async function pullRepo(hubAddr: string, repoName: string) {
+export async function pullRepo(hubAddr: string, repoName: string) {
     let uri = `git3://${hubAddr}/${repoName}`
     try {
         let res = await api.post(`/repos/${hubAddr}/${repoName}/mirror-sync`)
@@ -194,7 +194,7 @@ async function pullRepo(hubAddr: string, repoName: string) {
     }
 }
 
-async function migrateHub(oldHubAddr: string, newHubAddr: string) {
+export async function migrateHub(oldHubAddr: string, newHubAddr: string) {
     console.log("migrateHub:", oldHubAddr, newHubAddr)
     let oldHub = cache.hubs[oldHubAddr]
     if (oldHub) {
@@ -207,7 +207,7 @@ async function migrateHub(oldHubAddr: string, newHubAddr: string) {
     }
 }
 
-async function syncNameService() {
+export async function syncNameService() {
     let nsContract = initNameService()
     let last = cache.ns.last
 
@@ -259,7 +259,7 @@ export async function deleteHub(hubAddr: string): Promise<boolean> {
     return res.status == 200
 }
 
-async function createHub(hubAddr: string) {
+export async function createHub(hubAddr: string) {
     let res = await api.post(`/orgs`, {
         repo_admin_change_team_access: true,
         username: hubAddr,
